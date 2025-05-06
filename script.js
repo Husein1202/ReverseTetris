@@ -90,13 +90,13 @@ if (mode === 'solo' && !solo) {
 
   const phrases = ["Mantap!", "Wow!", "Hebat!!", "Keren!", "GG!", "🔥", "Nice!"];
 
-  const sounds = {
+  const Sounds = {
     rotate: document.getElementById('rotate'),
     move: document.getElementById('move'),
     harddrop: document.getElementById('harddrop'),
     lineclear: document.getElementById('lineclear'),
     gameover: document.getElementById('gameover'),
-    gameOverAlt: new Audio('sound/game_over.mp3'),
+    gameOverAlt: new Audio('Sound/game_over.mp3'),
     levelup: document.getElementById('levelup'),
     countdown3: document.getElementById('countdown3'),
     countdown2: document.getElementById('countdown2'),
@@ -106,9 +106,9 @@ if (mode === 'solo' && !solo) {
   };
 
   for (let i = 1; i <= 16; i++) {
-    sounds[`combo${i}`] = document.getElementById(`combo${i}`);
+    Sounds[`combo${i}`] = document.getElementById(`combo${i}`);
   }
-  sounds.comboBreak = document.getElementById('comboBreak');
+  Sounds.comboBreak = document.getElementById('comboBreak');
 
   let comboCount = 0;
   const arena = createMatrix(12, 30);
@@ -399,8 +399,8 @@ function drawDebris(ctx) {
     playerReset();
     
   
-    sounds.harddrop.currentTime = 0;
-    sounds.harddrop.play();
+    Sounds.harddrop.currentTime = 0;
+    Sounds.harddrop.play();
   
     canvas.classList.add('shake');
     setTimeout(() => canvas.classList.remove('shake'), 300);
@@ -425,8 +425,8 @@ function drawDebris(ctx) {
     if (collide(arena, player)) {
       player.pos.x -= dir;
     } else {
-      sounds.move.currentTime = 0;
-      sounds.move.play();
+      Sounds.move.currentTime = 0;
+      Sounds.move.play();
     }
   }
 
@@ -446,8 +446,8 @@ function drawDebris(ctx) {
         }
       }
     } else {
-      sounds.rotate.currentTime = 0;
-      sounds.rotate.play();
+      Sounds.rotate.currentTime = 0;
+      Sounds.rotate.play();
     rotatedLast = true;
     }
   }
@@ -494,10 +494,10 @@ player.next = getNextPiece();
     if (collide(arena, player)) {
       if (!isGameOver) {
         gameOverOverlay.style.display = 'flex';
-        sounds.gameover.currentTime = 0;
-        sounds.gameover.play();
-        sounds.gameOverAlt.currentTime = 0;
-        sounds.gameOverAlt.play();
+        Sounds.gameover.currentTime = 0;
+        Sounds.gameover.play();
+        Sounds.gameOverAlt.currentTime = 0;
+        Sounds.gameOverAlt.play();
         isGameOver = true;
       // Save recent solo score
       const recentScores = JSON.parse(localStorage.getItem("soloRecentScores") || "[]");
@@ -573,10 +573,10 @@ if (clearedRows.length > 0) {
       comboCount += linesCleared;
       if (comboCount > highestCombo) highestCombo = comboCount;
       showComboTitle(linesCleared);
-      const soundId = `combo${Math.min(comboCount, 16)}`;
-      if (sounds[soundId]) {
-        sounds[soundId].currentTime = 0;
-        sounds[soundId].play();
+      const SoundId = `combo${Math.min(comboCount, 16)}`;
+      if (Sounds[SoundId]) {
+        Sounds[SoundId].currentTime = 0;
+        Sounds[SoundId].play();
       }
   
       comboDisplay.textContent = `Combo x${comboCount}!`;
@@ -588,8 +588,8 @@ if (clearedRows.length > 0) {
         comboDisplay.classList.remove('shake');
       }, 1000);
   
-      sounds.lineclear.currentTime = 0;
-      sounds.lineclear.play();
+      Sounds.lineclear.currentTime = 0;
+      Sounds.lineclear.play();
   
       const phrase = phrases[Math.floor(Math.random() * phrases.length)];
       congratsText.textContent = phrase;
@@ -600,8 +600,8 @@ if (clearedRows.length > 0) {
       if (newLevel !== player.level) {
         player.level = newLevel;
         dropInterval = Math.max(100, 1000 - (player.level - 1) * 100);
-        sounds.levelup.currentTime = 0;
-        sounds.levelup.play();
+        Sounds.levelup.currentTime = 0;
+        Sounds.levelup.play();
       }
   
       if (player.lines >= 40) {
@@ -641,8 +641,8 @@ if (clearedRows.length > 0) {
     } else {
       if (comboCount > 0) {
         comboCount = 0;
-        sounds.comboBreak.currentTime = 0;
-        sounds.comboBreak.play();
+        Sounds.comboBreak.currentTime = 0;
+        Sounds.comboBreak.play();
         comboDisplay.style.opacity = 0;
       }
     }
@@ -741,10 +741,10 @@ if (clearedRows.length > 0) {
     document.getElementById('pausedOverlay').innerText = isPaused ? 'The game is paused' : '';
   
     if (isPaused) {
-      sounds.bgMusic.pause(); // ⏸️ Pause lagu saat pause
+      Sounds.bgMusic.pause(); // ⏸️ Pause lagu saat pause
     } else {
       lastTime = performance.now();
-      sounds.bgMusic.play(); // ▶️ Lanjutkan lagu saat resume
+      Sounds.bgMusic.play(); // ▶️ Lanjutkan lagu saat resume
       update();
     }
   });
@@ -797,8 +797,8 @@ if (clearedRows.length > 0) {
       nicknameDisplay.textContent = `Player: ${nickname}`;
       startScreen.style.display = "none";
       modeScreen.style.display = "flex";
-      sounds.mainTheme.volume = 0.5;
-      sounds.mainTheme.play();
+      Sounds.mainTheme.volume = 0.5;
+      Sounds.mainTheme.play();
     };
   }
     
@@ -817,22 +817,22 @@ if (clearedRows.length > 0) {
     countdownValue = 3;
     countdownText.textContent = countdownValue;
     document.getElementById('countdownOverlay').style.display = 'flex';
-    sounds.countdown3.play();
+    Sounds.countdown3.play();
   
     const countdownInterval = setInterval(() => {
       countdownValue--;
   
       if (countdownValue > 0) {
         countdownText.textContent = countdownValue;
-        if (countdownValue === 2) sounds.countdown2.play();
-        else if (countdownValue === 1) sounds.countdown1.play();
+        if (countdownValue === 2) Sounds.countdown2.play();
+        else if (countdownValue === 1) Sounds.countdown1.play();
       } else {
         clearInterval(countdownInterval);
         document.getElementById('countdownOverlay').style.display = 'none';
-        sounds.mainTheme.pause();
-        sounds.bgMusic.volume = 0.1;
-        sounds.bgMusic.currentTime = 0;
-        sounds.bgMusic.play();
+        Sounds.mainTheme.pause();
+        Sounds.bgMusic.volume = 0.1;
+        Sounds.bgMusic.currentTime = 0;
+        Sounds.bgMusic.play();
   
         // ✅ Game dan timer benar-benar dimulai di sini
         playerReset();
