@@ -88,12 +88,12 @@ if (mode === 'solo' && !solo) {
   let FrenzyTimeRemaining = 2 * 60 * 1000; // 2 menit dalam ms
 
 
-  const sounds = {
+  const Sounds = {
     rotate: document.getElementById('rotate'),
     move: document.getElementById('move'),
     harddrop: document.getElementById('harddrop'),
     lineclear: document.getElementById('lineclear'),
-    gameOverAlt: new Audio('sound/game_over.mp3'),
+    gameOverAlt: new Audio('Sound/game_over.mp3'),
     levelup: document.getElementById('levelup'),
     countdown3: document.getElementById('countdown3'),
     countdown2: document.getElementById('countdown2'),
@@ -103,9 +103,9 @@ if (mode === 'solo' && !solo) {
   };
 
   for (let i = 1; i <= 16; i++) {
-    sounds[`combo${i}`] = document.getElementById(`combo${i}`);
+    Sounds[`combo${i}`] = document.getElementById(`combo${i}`);
   }
-  sounds.comboBreak = document.getElementById('comboBreak');
+  Sounds.comboBreak = document.getElementById('comboBreak');
 
   let comboCount = 0;
   let arena = createMatrix(12, 30);
@@ -451,8 +451,8 @@ function drawDebris(ctx) {
     arenaSweep();
     playerReset();
   
-    sounds.harddrop.currentTime = 0;
-    sounds.harddrop.play();
+    Sounds.harddrop.currentTime = 0;
+    Sounds.harddrop.play();
   
     canvas.classList.add('shake');
     setTimeout(() => canvas.classList.remove('shake'), 300);
@@ -491,8 +491,8 @@ function drawDebris(ctx) {
     if (collide(arena, player)) {
       player.pos.x -= dir;
     } else {
-      sounds.move.currentTime = 0;
-      sounds.move.play();
+      Sounds.move.currentTime = 0;
+      Sounds.move.play();
     }
   }
 
@@ -512,8 +512,8 @@ function drawDebris(ctx) {
         }
       }
     } else {
-      sounds.rotate.currentTime = 0;
-      sounds.rotate.play();
+      Sounds.rotate.currentTime = 0;
+      Sounds.rotate.play();
     rotatedLast = true;
     }
   }
@@ -650,10 +650,10 @@ if (clearedRows.length > 0) {
       if (comboCount > highestCombo) highestCombo = comboCount;
 
       showComboTitle(linesCleared);
-      const soundId = `combo${Math.min(comboCount, 16)}`;
-      if (sounds[soundId]) {
-        sounds[soundId].currentTime = 0;
-        sounds[soundId].play();
+      const SoundId = `combo${Math.min(comboCount, 16)}`;
+      if (Sounds[SoundId]) {
+        Sounds[SoundId].currentTime = 0;
+        Sounds[SoundId].play();
       }
   
       comboDisplay.textContent = `Combo x${comboCount}!`;
@@ -665,8 +665,8 @@ if (clearedRows.length > 0) {
         comboDisplay.classList.remove('shake');
       }, 1000);
   
-      sounds.lineclear.currentTime = 0;
-      sounds.lineclear.play();
+      Sounds.lineclear.currentTime = 0;
+      Sounds.lineclear.play();
   
       const phrase = phrases[Math.floor(Math.random() * phrases.length)];
       congratsText.textContent = phrase;
@@ -677,15 +677,15 @@ if (clearedRows.length > 0) {
       if (newLevel !== player.level) {
         player.level = newLevel;
         dropInterval = Math.max(100, 1000 - (player.level - 1) * 100);
-        sounds.levelup.currentTime = 0;
-        sounds.levelup.play();
+        Sounds.levelup.currentTime = 0;
+        Sounds.levelup.play();
       }
   
     } else {
       if (comboCount > 0) {
         comboCount = 0;
-        sounds.comboBreak.currentTime = 0;
-        sounds.comboBreak.play();
+        Sounds.comboBreak.currentTime = 0;
+        Sounds.comboBreak.play();
         comboDisplay.style.opacity = 0;
       }
     }
@@ -819,10 +819,10 @@ function resetGame() {
     document.getElementById('pausedOverlay').innerText = isPaused ? 'The game is paused' : '';
   
     if (isPaused) {
-      sounds.bgMusic.pause(); // ⏸️ Pause lagu saat pause
+      Sounds.bgMusic.pause(); // ⏸️ Pause lagu saat pause
     } else {
       lastTime = performance.now();
-      sounds.bgMusic.play(); // ▶️ Lanjutkan lagu saat resume
+      Sounds.bgMusic.play(); // ▶️ Lanjutkan lagu saat resume
       update();
     }
   });
@@ -838,8 +838,8 @@ function resetGame() {
       nicknameDisplay.textContent = `Player: ${nickname}`;
       startScreen.style.display = "none";
       modeScreen.style.display = "flex";
-      sounds.mainTheme.volume = 0.5;
-      sounds.mainTheme.play();
+      Sounds.mainTheme.volume = 0.5;
+      Sounds.mainTheme.play();
     };
   }
     
@@ -858,22 +858,22 @@ function resetGame() {
     countdownValue = 3;
     countdownText.textContent = countdownValue;
     document.getElementById('countdownOverlay').style.display = 'flex';
-    sounds.countdown3.play();
+    Sounds.countdown3.play();
   
     for (let i = countdownValue; i > 0; i--) {
       await new Promise(resolve => setTimeout(resolve, 1000));
       countdownValue--;
       countdownText.textContent = countdownValue;
   
-      if (countdownValue === 2) sounds.countdown2.play();
-      else if (countdownValue === 1) sounds.countdown1.play();
+      if (countdownValue === 2) Sounds.countdown2.play();
+      else if (countdownValue === 1) Sounds.countdown1.play();
     }
   
     document.getElementById('countdownOverlay').style.display = 'none';
-    sounds.mainTheme.pause();
-    sounds.bgMusic.volume = 0.1;
-    sounds.bgMusic.currentTime = 0;
-    sounds.bgMusic.play();
+    Sounds.mainTheme.pause();
+    Sounds.bgMusic.volume = 0.1;
+    Sounds.bgMusic.currentTime = 0;
+    Sounds.bgMusic.play();
   
     // ✅ Spawn tetromino dulu
     playerReset();
