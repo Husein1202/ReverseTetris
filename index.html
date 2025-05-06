@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Welcome to Reverse Tetris</title>
+  <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&display=swap" rel="stylesheet">
+</head>
+<body>
+  
+  <div class="starfield">
+    <div class="star"></div>
+    <div class="star"></div>
+    <div class="star"></div>
+    <div class="star"></div>
+    <div class="star"></div>
+    <div class="star"></div>
+    <div class="star"></div>
+    <div class="star"></div>
+  </div>
+  
+  <!--  Welcome Screen -->
+  <div id="startScreen">
+    <div class="bg-overlay"></div>
+    <div class="start-content">
+      <img src="gameTittle.png" alt="Reverse Tetris Logo" style="max-width: 100%; height: auto; margin-bottom: -10px;" />
+      <p class="subtitle">Created by <strong>HiFlume</strong></p>
+      <p class="description">
+        Stacking has never been so backward!
+      </p>
+      <input type="text" id="nicknameInput" placeholder="Enter your nickname" />
+      <p class="nickname-note">If not, I will assign something weird</p>
+      <button id="joinButton">Join Game</button>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+  <script>
+    const joinButton = document.getElementById('joinButton');
+    const nicknameInput = document.getElementById('nicknameInput');
+  
+    joinButton.addEventListener('click', () => {
+      let name = nicknameInput.value.trim();
+      if (!name) {
+        name = window.coolNicknames[Math.floor(Math.random() * window.coolNicknames.length)];
+      }
+      localStorage.setItem('nickname', name);
+      window.location.href = 'select-mode.html';
+    });
+  </script>
+  <audio id="buttonSound" src="hit.mp3" preload="auto"></audio>
+  <script>
+    const buttonSound = document.getElementById("buttonSound");
+  
+    function playButtonSound() {
+      if (buttonSound) {
+        buttonSound.currentTime = 0;
+        buttonSound.play().catch(() => {}); 
+      }
+    }
+  
+    document.addEventListener("DOMContentLoaded", () => {
+      document.querySelectorAll("button").forEach(btn => {
+        btn.addEventListener("mouseenter", playButtonSound);
+        btn.addEventListener("click", playButtonSound);
+      });
+    });
+  </script>
+
+<script>
+  const starfield = document.querySelector('.starfield');
+  for (let i = 0; i < 100; i++) {
+    const star = document.createElement('div');
+    star.className = 'star';
+    star.style.top = `${Math.random() * 100}%`;
+    star.style.left = `${Math.random() * 100}%`;
+    star.style.animationDelay = `${Math.random() * 5}s`;
+    starfield.appendChild(star);
+  }
+</script>
+
+  
+  </body>
+</html>
