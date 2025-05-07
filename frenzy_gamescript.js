@@ -787,7 +787,7 @@ if (clearedRows.length > 0) {
           break;
       }
     }
-  }
+  )}
   pauseButton.onclick = () => {
     isPaused = !isPaused;
     pauseButton.textContent = isPaused ? 'Resume' : 'Pause';
