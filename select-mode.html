@@ -260,16 +260,18 @@ document.querySelectorAll('.mode-block').forEach(block => {
       document.getElementById('modeScreen').style.display = 'none';
       document.getElementById('SettingScreen').style.display = 'block';
     }
-  });
+      });
 });
 
-// Tambahkan event listener untuk close popup hanya sekali
-const closeBtn = document.getElementById('closePopup');
-if (closeBtn) {
-  closeBtn.addEventListener('click', () => {
-    document.getElementById('popupLier').classList.add('hidden');
-  });
-}
+    const closeBtn = document.getElementById('closePopup');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => {
+        document.getElementById('popupLier').classList.add('hidden');
+      });
+    }
+
+
+
 
 
 
