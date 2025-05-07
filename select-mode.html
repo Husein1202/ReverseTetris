@@ -245,8 +245,8 @@ document.querySelectorAll('.anon-label').forEach(label => {
     
 
     // Mode navigation
-    document.querySelectorAll('.mode-block').forEach(block => {
-  block.addEventListener('click', () => {
+document.querySelectorAll('.mode-block').forEach(block => {
+  block.addEventListener('click', (event) => {
     const selected = block.dataset.mode;
 
     if (selected === 'solo') {
@@ -260,15 +260,17 @@ document.querySelectorAll('.anon-label').forEach(label => {
       document.getElementById('modeScreen').style.display = 'none';
       document.getElementById('SettingScreen').style.display = 'block';
     }
-
-    const closeBtn = document.getElementById('closePopup');
-    if (closeBtn) {
-      closeBtn.addEventListener('click', () => {
-        document.getElementById('popupLier').classList.add('hidden');
-      });
-    }
   });
 });
+
+// Tambahkan event listener untuk close popup hanya sekali
+const closeBtn = document.getElementById('closePopup');
+if (closeBtn) {
+  closeBtn.addEventListener('click', () => {
+    document.getElementById('popupLier').classList.add('hidden');
+  });
+}
+
 
 
     document.querySelector('.mode-lead').addEventListener('click', () => {
