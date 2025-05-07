@@ -43,7 +43,7 @@
     joinButton.addEventListener('click', () => {
 let name = nicknameInput.value.trim();
 if (!name) {
-name = window.coolNicknames[Math.floor(Math.random() * window.coolNicknames.length)
+name = window.coolNicknames[Math.floor(Math.random() * window.coolNicknames.length)];
   }
       localStorage.setItem('nickname', name);
       window.location.href = 'select-mode.html';
