@@ -1,82 +1,84 @@
+// Helper function to apply settings from localStorage
+function applyStoredSettings() {
+  // Apply volume settings
+  const musicVolume = localStorage.getItem('musicVolume');
+  if (musicVolume !== null) {
+    document.getElementById('musicVolume').value = musicVolume;
+    updateVolumeValue('musicVolume'); // Update the volume immediately
+  }
+
+  const fxVolume = localStorage.getItem('fxVolume');
+  if (fxVolume !== null) {
+    document.getElementById('fxVolume').value = fxVolume;
+    updateVolumeValue('fxVolume'); // Update the volume immediately
+  }
+
+  // Apply handling settings
+  const das = localStorage.getItem('das');
+  if (das !== null) {
+    document.getElementById('das').value = das;
+    updateHandling('das');
+  }
+
+  const arr = localStorage.getItem('arr');
+  if (arr !== null) {
+    document.getElementById('arr').value = arr;
+    updateHandling('arr');
+  }
+
+  const sdf = localStorage.getItem('sdf');
+  if (sdf !== null) {
+    document.getElementById('sdf').value = sdf;
+    updateHandling('sdf');
+  }
+}
+
+// Volume update function
 function updateVolumeValue(id) {
-    const el = document.getElementById(id);
-    const volume = el.value;
-  
-    // Audio target berdasarkan ID slider
-    let audioId = "";
-    if (id === "musicVolume") {
-      audioId = "mainTheme";
-    } else if (id === "fxVolume") {
-      audioId = "buttonSound";
-    }
-  
-    const audio = document.getElementById(audioId);
-    if (audio) {
-      audio.volume = volume / 100;
-    }
-  
-    // Update teks persen di label
-    const label = document.getElementById(id + "Value");
-    if (label) {
-      label.textContent = `${volume}%`;
-    }
+  const el = document.getElementById(id);
+  const volume = el.value;
+
+  let audioId = "";
+  if (id === "musicVolume") {
+    audioId = "mainTheme";
+  } else if (id === "fxVolume") {
+    audioId = "buttonSound";
   }
 
-  document.addEventListener("DOMContentLoaded", () => {
-    // Main Theme Volume awal (50%)
-    const mainTheme = document.getElementById("Main-Theme");
-    if (mainTheme) {
-      mainTheme.volume = 0.05;
-      const musicSlider = document.getElementById("musicVolume");
-      const musicLabel = document.getElementById("musicVolumeValue");
-      if (musicSlider) {
-        musicSlider.value = 5;
-        if (musicLabel) musicLabel.textContent = "5%";
-      }
-    }
-  
-    // Button Sound Volume awal (50%)
-    const buttonSound = document.getElementById("buttonSound");
-    if (buttonSound) {
-      buttonSound.volume = 0.5;
-      const fxSlider = document.getElementById("fxVolume");
-      const fxLabel = document.getElementById("fxVolumeValue");
-      if (fxSlider) {
-        fxSlider.value = 50;
-        if (fxLabel) fxLabel.textContent = "50%";
-      }
-    }
-  });
-  
-  
-  
-
-  const das = document.getElementById("das");
-  const arr = document.getElementById("arr");
-  const sdf = document.getElementById("sdf");
-
-  das.addEventListener("input", () => {
-    document.getElementById("das-value").textContent = das.value + "MS";
-  });
-  arr.addEventListener("input", () => {
-    document.getElementById("arr-value").textContent = arr.value + "MS";
-  });
-  sdf.addEventListener("input", () => {
-    document.getElementById("sdf-value").textContent = sdf.value + "MS";
-  });
-
-  function updateHandling(id) {
-    const el = document.getElementById(id);
-    const label = document.getElementById(id + '-value');
-    const update = () => {
-      const ms = parseInt(el.value, 10);
-      const frames = Math.round(ms / (1000 / 60)); // convert ms to frames (assuming 60fps)
-      label.textContent = `${ms}MS (${frames}F)`;
-    };
-    el.addEventListener("input", update);
-    update(); // initialize
+  const audio = document.getElementById(audioId);
+  if (audio) {
+    audio.volume = volume / 100;
   }
-  
-  ["das", "arr", "sdf"].forEach(updateHandling);
-  
-  
+
+  const label = document.getElementById(id + "Value");
+  if (label) {
+    label.textContent = `${volume}%`;
+  }
+
+  // Save volume to localStorage
+  localStorage.setItem(id, volume);
+}
+
+// Handling update function
+function updateHandling(id) {
+  const el = document.getElementById(id);
+  const label = document.getElementById(id + '-value');
+  label.textContent = `${el.value}MS`;
+
+  // Save handling settings to localStorage
+  localStorage.setItem(id, el.value);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Apply the stored settings when the page loads
+  applyStoredSettings();
+
+  // Event listeners for handling sliders
+  document.getElementById("das").addEventListener("input", () => updateHandling('das'));
+  document.getElementById("arr").addEventListener("input", () => updateHandling('arr'));
+  document.getElementById("sdf").addEventListener("input", () => updateHandling('sdf'));
+
+  // Event listeners for volume sliders
+  document.getElementById("musicVolume").addEventListener("input", () => updateVolumeValue('musicVolume'));
+  document.getElementById("fxVolume").addEventListener("input", () => updateVolumeValue('fxVolume'));
+});
