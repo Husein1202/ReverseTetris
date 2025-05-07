@@ -859,7 +859,7 @@ if (clearedRows.length > 0) {
     }, 1000);
   };
   
-  // ✅ Final call (ONLY this)
+  // ✅ Final call (ONLY this is)
   startCountdown(); // jangan ada baris lain setelah ini (seperti update() atau playerReset())
   
   let hold = {
