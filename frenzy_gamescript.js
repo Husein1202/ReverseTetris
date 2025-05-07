@@ -925,4 +925,4 @@ if (clearedRows.length > 0) {
     });
   }
   
-};
+}
