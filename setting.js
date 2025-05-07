@@ -23,15 +23,15 @@ function updateVolumeValue(id) {
   }
 
   document.addEventListener("DOMContentLoaded", () => {
-    // Main Theme Volume awal (50%)
+    // Main Theme Volume awal (10%)
     const mainTheme = document.getElementById("mainTheme");
     if (mainTheme) {
-      mainTheme.volume = 0.05;
+      mainTheme.volume = 0.1;
       const musicSlider = document.getElementById("musicVolume");
       const musicLabel = document.getElementById("musicVolumeValue");
       if (musicSlider) {
-        musicSlider.value = 5;
-        if (musicLabel) musicLabel.textContent = "5%";
+        musicSlider.value = 10;
+        if (musicLabel) musicLabel.textContent = "10%";
       }
     }
   
