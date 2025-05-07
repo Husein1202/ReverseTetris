@@ -35,20 +35,40 @@
     </div>
   </div>
 
-  <script src="script.js"></script>
-  <script>
+<script src="script.js"></script>
+<script>
+  window.onload = () => {
+    // Ensure that the window.coolNicknames array is defined
+    if (!window.coolNicknames) {
+      window.coolNicknames = [
+        "TetehTetris", "BlokGagal", "SalahNgetik", "SiLemot", "CieNoob",
+        "FrostByte", "SiPanik", "GaPernahMenang", "BlokManaBlok", "CipungTetris",
+        "MainSendiri", "ComboNgaco", "PakTetris", "MalesMain", "GaAdaSkill",
+        "SkuyMain", "KambingNgeLag", "HoloFury", "UjangGaming", "KlikAjaDulu"
+      ];
+    }
+
     const joinButton = document.getElementById('joinButton');
     const nicknameInput = document.getElementById('nicknameInput');
-  
-    joinButton.addEventListener('click', () => {
-let name = nicknameInput.value.trim();
-if (!name) {
-      name = window.coolNicknames[Math.floor(Math.random() * window.coolNicknames.length)];
+    
+    // Check if the elements exist before attaching the event listener
+    if (joinButton && nicknameInput) {
+      joinButton.addEventListener('click', () => {
+        let name = nicknameInput.value.trim();
+
+        // If no name, pick a random name from the array
+        if (!name) {
+          name = window.coolNicknames[Math.floor(Math.random() * window.coolNicknames.length)];
+        }
+
+        // Save the nickname and redirect
+        localStorage.setItem('nickname', name);
+        window.location.href = 'select-mode.html'; // Redirect to the next page
+      });
     }
-      localStorage.setItem('nickname', name);
-      window.location.href = 'select-mode.html';
-    });
-  </script>
+  };
+</script>
+
   <audio id="buttonSound" src="hit.mp3" preload="auto"></audio>
   <script>
     const buttonSound = document.getElementById("buttonSound");
