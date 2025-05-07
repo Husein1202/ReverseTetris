@@ -30,12 +30,6 @@ window.onload = () => {
   const storedNickname = localStorage.getItem('nickname') || 'Player';
 
   if (joinButton && nicknameInput && startScreen) {
-    const coolNicknames = [
-      "TetehTetris", "BlokGagal", "SalahNgetik", "SiLemot", "CieNoob",
-      "FrostByte", "SiPanik", "GaPernahMenang", "BlokManaBlok", "CipungTetris",
-      "MainSendiri", "ComboNgaco", "PakTetris", "MalesMain", "GaAdaSkill",
-      "SkuyMain", "KambingNgeLag", "HoloFury", "UjangGaming", "KlikAjaDulu"    
-    ];
     joinButton.onclick = () => {
       let name = nicknameInput.value.trim();
       if (!name) {
