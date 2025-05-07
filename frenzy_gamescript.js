@@ -788,7 +788,7 @@ if (clearedRows.length > 0) {
       }
     }
   }
-  ,pauseButton.onclick = () => {
+  pauseButton.onclick = () => {
     isPaused = !isPaused;
     pauseButton.textContent = isPaused ? 'Resume' : 'Pause';
     document.getElementById('pausedOverlay').innerText = isPaused ? 'The game is paused' : '';
