@@ -5,7 +5,7 @@ function updateVolumeValue(id) {
     // Audio target berdasarkan ID slider
     let audioId = "";
     if (id === "musicVolume") {
-      audioId = "main-theme";
+      audioId = "Main-Theme";
     } else if (id === "fxVolume") {
       audioId = "buttonSound";
     }
@@ -24,7 +24,7 @@ function updateVolumeValue(id) {
 
   document.addEventListener("DOMContentLoaded", () => {
     // Main Theme Volume awal (50%)
-    const mainTheme = document.getElementById("main-theme");
+    const mainTheme = document.getElementById("Main-Theme");
     if (mainTheme) {
       mainTheme.volume = 0.05;
       const musicSlider = document.getElementById("musicVolume");
