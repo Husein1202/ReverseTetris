@@ -43,11 +43,7 @@
     joinButton.addEventListener('click', () => {
 let name = nicknameInput.value.trim();
 if (!name) {
-if (window.coolNicknames) {
-        name = window.coolNicknames[Math.floor(Math.random() * window.coolNicknames.length)];
-      } else {
-        name = "Player";  // Nama fallback jika array tidak tersedia
-      }
+      name = window.coolNicknames[Math.floor(Math.random() * window.coolNicknames.length)];
     }
       localStorage.setItem('nickname', name);
       window.location.href = 'select-mode.html';
