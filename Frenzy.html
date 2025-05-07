@@ -93,6 +93,20 @@
     <div id="countdownText">3</div>
   </div>
 
+  <script>
+    const needsInit = !localStorage.getItem('selectedGameMode') || !localStorage.getItem('selectedSoloMode');
+
+    if (needsInit) {
+      localStorage.setItem('selectedGameMode', 'solo');
+      localStorage.setItem('selectedSoloMode', 'zen');
+      localStorage.setItem('nickname', 'Guest');
+
+      window.location.reload();
+    }
+  </script>
+
+  <script src="./frenzy_gamescript.js" defer></script>
+
   <!-- Sound Effects -->
   <audio id="rotate" src="sound/rotate.wav"></audio>
   <audio id="move" src="sound/move.wav"></audio>
@@ -126,20 +140,6 @@
   <audio id="comboBreak" src="sound/combobreak.wav"></audio>
 
   <audio id="buttonSound" src="sound/hit" preload="auto"></audio>
-  <div id="comboTitle">Combo!</div>
-
-  <script>
-    const needsInit = !localStorage.getItem('selectedGameMode') || !localStorage.getItem('selectedSoloMode');
-
-    if (needsInit) {
-      localStorage.setItem('selectedGameMode', 'solo');
-      localStorage.setItem('selectedSoloMode', 'zen');
-      localStorage.setItem('nickname', 'Guest');
-
-      window.location.reload();
-    }
-  </script>
-  <script src="./frenzy_gamescript.js" defer></script>
   <script>
     const buttonSound = document.getElementById("buttonSound");
 
@@ -158,6 +158,7 @@
     });
   </script>
 
+  <div id="comboTitle">Combo!</div>
 
 </body>
 </html>
