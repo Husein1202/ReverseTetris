@@ -6,59 +6,45 @@ let dropCounter = 0;
 let totalPiecesDropped = 0;
 let highestCombo = 0;
 let nextPiece = null;
+let hasCompleted40Lines = false;
+let startTime = 0;
+let elapsedTime = 0;
 
 window.onload = () => {
-  // Define the cool nicknames array
-  window.coolNicknames = [
-    "TetehTetris", "BlokGagal", "SalahNgetik", "SiLemot", "CieNoob",
-    "FrostByte", "SiPanik", "GaPernahMenang", "BlokManaBlok", "CipungTetris",
-    "MainSendiri", "ComboNgaco", "PakTetris", "MalesMain", "GaAdaSkill",
-    "SkuyMain", "KambingNgeLag", "HoloFury", "UjangGaming", "KlikAjaDulu"
-  ];
-
-  // Check the game mode from localStorage
   const mode = localStorage.getItem('selectedGameMode');
-  const solo = localStorage.getItem('selectedSoloMode');
+const solo = localStorage.getItem('selectedSoloMode');
+if (mode === 'solo' && !solo) {
+  window.location.href = 'solo.html';
+}
 
-  // If the mode is 'solo' and solo mode is not selected, show solo screen
-  if (mode === 'solo' && !solo) {
-    document.getElementById('modeScreen').style.display = 'none';
-    document.getElementById('soloScreen').style.display = 'block';
-  }
-
-  // Get the elements we need to work with
   const joinButton = document.getElementById('joinButton');
   const startScreen = document.getElementById('startScreen');
   const nicknameInput = document.getElementById('nicknameInput');
+  const storedNickname = localStorage.getItem('nickname') || 'Player';
 
-  // Ensure the elements exist before attaching event listener
   if (joinButton && nicknameInput && startScreen) {
-    joinButton.addEventListener('click', () => {
+    const coolNicknames = [
+      "TetehTetris", "BlokGagal", "SalahNgetik", "SiLemot", "CieNoob",
+      "FrostByte", "SiPanik", "GaPernahMenang", "BlokManaBlok", "CipungTetris",
+      "MainSendiri", "ComboNgaco", "PakTetris", "MalesMain", "GaAdaSkill",
+      "SkuyMain", "KambingNgeLag", "HoloFury", "UjangGaming", "KlikAjaDulu"    
+    ];
+    joinButton.onclick = () => {
       let name = nicknameInput.value.trim();
-      
-      // If name is empty, choose a random nickname from the array
       if (!name) {
-        name = window.coolNicknames[Math.floor(Math.random() * window.coolNicknames.length)];
+        name = coolNicknames[Math.floor(Math.random() * coolNicknames.length)];
       }
-      
-      // Save the nickname to localStorage
       localStorage.setItem('nickname', name);
-
-      // Hide the start screen and show the mode screen
       startScreen.style.display = "none";
       const modeScreen = document.getElementById('modeScreen');
       if (modeScreen) modeScreen.style.display = "flex";
-
-      // Set volume and play the main theme if it's available
       const mainTheme = document.getElementById('mainTheme');
       if (mainTheme) {
         mainTheme.volume = 0.5;
         mainTheme.play();
       }
-    });
+    };
   }
-};
-
   const countdownText = document.getElementById('countdownText');
   const gameOverOverlay = document.getElementById('gameOverOverlay');
   const restartButton = document.getElementById('restartButton');
@@ -100,13 +86,13 @@ window.onload = () => {
 
   const phrases = ["Mantap!", "Wow!", "Hebat!!", "Keren!", "GG!", "🔥", "Nice!"];
 
-  const Sounds = {
+  const sounds = {
     rotate: document.getElementById('rotate'),
     move: document.getElementById('move'),
     harddrop: document.getElementById('harddrop'),
     lineclear: document.getElementById('lineclear'),
     gameover: document.getElementById('gameover'),
-    gameOverAlt: new Audio('Sound/game_over.mp3'),
+    gameOverAlt: new Audio('sound/game_over.mp3'),
     levelup: document.getElementById('levelup'),
     countdown3: document.getElementById('countdown3'),
     countdown2: document.getElementById('countdown2'),
@@ -116,9 +102,9 @@ window.onload = () => {
   };
 
   for (let i = 1; i <= 16; i++) {
-    Sounds[`combo${i}`] = document.getElementById(`combo${i}`);
+    sounds[`combo${i}`] = document.getElementById(`combo${i}`);
   }
-  Sounds.comboBreak = document.getElementById('comboBreak');
+  sounds.comboBreak = document.getElementById('comboBreak');
 
   let comboCount = 0;
   const arena = createMatrix(12, 30);
@@ -409,8 +395,8 @@ function drawDebris(ctx) {
     playerReset();
     
   
-    Sounds.harddrop.currentTime = 0;
-    Sounds.harddrop.play();
+    sounds.harddrop.currentTime = 0;
+    sounds.harddrop.play();
   
     canvas.classList.add('shake');
     setTimeout(() => canvas.classList.remove('shake'), 300);
@@ -435,8 +421,8 @@ function drawDebris(ctx) {
     if (collide(arena, player)) {
       player.pos.x -= dir;
     } else {
-      Sounds.move.currentTime = 0;
-      Sounds.move.play();
+      sounds.move.currentTime = 0;
+      sounds.move.play();
     }
   }
 
@@ -456,8 +442,8 @@ function drawDebris(ctx) {
         }
       }
     } else {
-      Sounds.rotate.currentTime = 0;
-      Sounds.rotate.play();
+      sounds.rotate.currentTime = 0;
+      sounds.rotate.play();
     rotatedLast = true;
     }
   }
@@ -495,7 +481,6 @@ function drawDebris(ctx) {
     const pieces = 'TJLOSZI';
 if (!player.next) {
   player.next = getNextPiece();
-  totalPiecesDropped++;
 }
 player.matrix = player.next;
 player.next = getNextPiece();
@@ -504,10 +489,10 @@ player.next = getNextPiece();
     if (collide(arena, player)) {
       if (!isGameOver) {
         gameOverOverlay.style.display = 'flex';
-        Sounds.gameover.currentTime = 0;
-        Sounds.gameover.play();
-        Sounds.gameOverAlt.currentTime = 0;
-        Sounds.gameOverAlt.play();
+        sounds.gameover.currentTime = 0;
+        sounds.gameover.play();
+        sounds.gameOverAlt.currentTime = 0;
+        sounds.gameOverAlt.play();
         isGameOver = true;
       // Save recent solo score
       const recentScores = JSON.parse(localStorage.getItem("soloRecentScores") || "[]");
@@ -583,10 +568,10 @@ if (clearedRows.length > 0) {
       comboCount += linesCleared;
       if (comboCount > highestCombo) highestCombo = comboCount;
       showComboTitle(linesCleared);
-      const SoundId = `combo${Math.min(comboCount, 16)}`;
-      if (Sounds[SoundId]) {
-        Sounds[SoundId].currentTime = 0;
-        Sounds[SoundId].play();
+      const soundId = `combo${Math.min(comboCount, 16)}`;
+      if (sounds[soundId]) {
+        sounds[soundId].currentTime = 0;
+        sounds[soundId].play();
       }
   
       comboDisplay.textContent = `Combo x${comboCount}!`;
@@ -598,33 +583,31 @@ if (clearedRows.length > 0) {
         comboDisplay.classList.remove('shake');
       }, 1000);
   
-      Sounds.lineclear.currentTime = 0;
-      Sounds.lineclear.play();
+      sounds.lineclear.currentTime = 0;
+      sounds.lineclear.play();
   
       const phrase = phrases[Math.floor(Math.random() * phrases.length)];
       congratsText.textContent = phrase;
   
       player.lines += linesCleared;
-  
-      const newLevel = Math.floor(player.lines / 40) + 1;
-      if (newLevel !== player.level) {
-        player.level = newLevel;
-        dropInterval = Math.max(100, 1000 - (player.level - 1) * 100);
-        Sounds.levelup.currentTime = 0;
-        Sounds.levelup.play();
-      }
+
+      console.log("Lines:", player.lines, "HasCompleted:", hasCompleted40Lines);
+
   
       if (player.lines >= 40) {
+        hasCompleted40Lines = true;
         setTimeout(() => {
           isGameOver = true;              // ⛔ Hentikan update game loop
           timerStarted = false;           // 🛑 Hentikan timer berjalan
           document.getElementById("completionOverlay").style.display = "flex";
-      
+          elapsedTime = performance.now() - startTime;
           document.getElementById("statTime").textContent = formatTime(elapsedTime);
           document.getElementById("statScore").textContent = player.score;
           document.getElementById("statPieces").textContent = totalPiecesDropped;
           document.getElementById("statCombo").textContent = "x" + highestCombo;
           document.getElementById("statHolds").textContent = holdCount;
+          document.getElementById("statLines").textContent = player.lines;
+
 
           
                       // Statistik tambahan
@@ -635,7 +618,7 @@ if (clearedRows.length > 0) {
             document.getElementById("statKeys").textContent = totalKeysPressed;
             document.getElementById("statKPP").textContent = (totalKeysPressed / totalPiecesDropped).toFixed(2);
 
-            const lpm = (40 / (totalSeconds / 60)).toFixed(0);
+            const lpm = (player.lines / (totalSeconds / 60)).toFixed(0);
             document.getElementById("statLPM").textContent = lpm;
 
       
@@ -647,12 +630,13 @@ if (clearedRows.length > 0) {
           }
         }, 1000);
       }
+      
         
     } else {
       if (comboCount > 0) {
         comboCount = 0;
-        Sounds.comboBreak.currentTime = 0;
-        Sounds.comboBreak.play();
+        sounds.comboBreak.currentTime = 0;
+        sounds.comboBreak.play();
         comboDisplay.style.opacity = 0;
       }
     }
@@ -751,10 +735,10 @@ if (clearedRows.length > 0) {
     document.getElementById('pausedOverlay').innerText = isPaused ? 'The game is paused' : '';
   
     if (isPaused) {
-      Sounds.bgMusic.pause(); // ⏸️ Pause lagu saat pause
+      sounds.bgMusic.pause(); // ⏸️ Pause lagu saat pause
     } else {
       lastTime = performance.now();
-      Sounds.bgMusic.play(); // ▶️ Lanjutkan lagu saat resume
+      sounds.bgMusic.play(); // ▶️ Lanjutkan lagu saat resume
       update();
     }
   });
@@ -807,8 +791,8 @@ if (clearedRows.length > 0) {
       nicknameDisplay.textContent = `Player: ${nickname}`;
       startScreen.style.display = "none";
       modeScreen.style.display = "flex";
-      Sounds.mainTheme.volume = 0.5;
-      Sounds.mainTheme.play();
+      sounds.mainTheme.volume = 0.5;
+      sounds.mainTheme.play();
     };
   }
     
@@ -827,22 +811,22 @@ if (clearedRows.length > 0) {
     countdownValue = 3;
     countdownText.textContent = countdownValue;
     document.getElementById('countdownOverlay').style.display = 'flex';
-    Sounds.countdown3.play();
+    sounds.countdown3.play();
   
     const countdownInterval = setInterval(() => {
       countdownValue--;
   
       if (countdownValue > 0) {
         countdownText.textContent = countdownValue;
-        if (countdownValue === 2) Sounds.countdown2.play();
-        else if (countdownValue === 1) Sounds.countdown1.play();
+        if (countdownValue === 2) sounds.countdown2.play();
+        else if (countdownValue === 1) sounds.countdown1.play();
       } else {
         clearInterval(countdownInterval);
         document.getElementById('countdownOverlay').style.display = 'none';
-        Sounds.mainTheme.pause();
-        Sounds.bgMusic.volume = 0.1;
-        Sounds.bgMusic.currentTime = 0;
-        Sounds.bgMusic.play();
+        sounds.mainTheme.pause();
+        sounds.bgMusic.volume = 0.1;
+        sounds.bgMusic.currentTime = 0;
+        sounds.bgMusic.play();
   
         // ✅ Game dan timer benar-benar dimulai di sini
         playerReset();
