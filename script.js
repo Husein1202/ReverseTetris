@@ -7,13 +7,6 @@ let totalPiecesDropped = 0;
 let highestCombo = 0;
 let nextPiece = null;
 
-window.coolNicknames = [
-  "TetehTetris", "BlokGagal", "SalahNgetik", "SiLemot", "CieNoob",
-  "FrostByte", "SiPanik", "GaPernahMenang", "BlokManaBlok", "CipungTetris",
-  "MainSendiri", "ComboNgaco", "PakTetris", "MalesMain", "GaAdaSkill",
-  "SkuyMain", "KambingNgeLag", "HoloFury", "UjangGaming", "KlikAjaDulu"
-];
-
 window.onload = () => {
   const mode = localStorage.getItem('selectedGameMode');
   const solo = localStorage.getItem('selectedSoloMode');
@@ -23,6 +16,13 @@ window.onload = () => {
     document.getElementById('soloScreen').style.display = 'block';
   }
 };
+
+window.coolNicknames = [
+  "TetehTetris", "BlokGagal", "SalahNgetik", "SiLemot", "CieNoob",
+  "FrostByte", "SiPanik", "GaPernahMenang", "BlokManaBlok", "CipungTetris",
+  "MainSendiri", "ComboNgaco", "PakTetris", "MalesMain", "GaAdaSkill",
+  "SkuyMain", "KambingNgeLag", "HoloFury", "UjangGaming", "KlikAjaDulu"
+];
 
   const joinButton = document.getElementById('joinButton');
   const startScreen = document.getElementById('startScreen');
