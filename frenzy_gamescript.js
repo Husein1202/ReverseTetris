@@ -925,5 +925,10 @@ if (clearedRows.length > 0) {
       });
     });
   }
+  window.addEventListener("DOMContentLoaded", () => {
+  console.log("DOM loaded. Calling startCountdown...");
+  startCountdown();
+});
+
   
 };
