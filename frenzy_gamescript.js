@@ -98,40 +98,59 @@ if (mode === 'solo' && !solo) {
 
   function updateFrenzyTimer(deltaTime) {
     if (isPaused || isGameOver || !timerStarted) return;
-
+  
     FrenzyTimeRemaining -= deltaTime;
     if (FrenzyTimeRemaining <= 0) {
       FrenzyTimeRemaining = 0;
       isGameOver = true;
-      document.getElementById("completionOverlay").style.display = "flex";
-    document.getElementById("finalScoreDisplay").textContent = player.score;
-    document.getElementById("statScore").textContent = player.score;
-    document.getElementById("statPieces").textContent = totalPiecesDropped;
-
-    const totalSeconds = elapsedTime / 1000;
-    const pps = (totalPiecesDropped / totalSeconds).toFixed(2);
-    document.getElementById("statPPS").textContent = pps;
-
-    document.getElementById("statKeys").textContent = totalKeysPressed;
-    document.getElementById("statKPP").textContent =
-  totalPiecesDropped > 0 ? (totalKeysPressed / totalPiecesDropped).toFixed(2) : "0.00";
-
-    document.getElementById("statCombo").textContent = "x" + highestCombo;
-
-    const lpm = (player.lines / (totalSeconds / 60)).toFixed(0);
-    document.getElementById("statLPM").textContent = lpm;
-    document.getElementById("statHolds").textContent = holdCount;
-
-    const backBtn = document.getElementById("completionbackMode");
-    if (backBtn) {
-    backBtn.onclick = () => window.location.href = "select-mode.html";
-};
-
-      if (FrenzyTimerElement) FrenzyTimerElement.textContent = "0:00";
-      completionOverlay.style.display = 'flex';
+  
+      // Stop background music and play gameover sound
       sounds.bgMusic.pause();
       sounds.gameover.currentTime = 0;
       sounds.gameover.play();
+  
+      // Tampilkan overlay
+      document.getElementById("completionOverlay").style.display = "flex";
+  
+      // Skor akhir
+      document.getElementById("finalScoreDisplay").textContent = player.score;
+      document.getElementById("statScore").textContent = player.score;
+  
+      // Pastikan waktu dihitung akurat
+      const totalElapsed = Date.now() - gameStartTime; // pastikan kamu set `gameStartTime = Date.now()` saat game dimulai
+      const totalSeconds = totalElapsed / 1000;
+  
+      // Stats akurat
+      document.getElementById("statPieces").textContent = totalPiecesDropped;
+      const pps = totalSeconds > 0 ? (totalPiecesDropped / totalSeconds).toFixed(2) : "0.00";
+      document.getElementById("statPPS").textContent = pps;
+  
+      document.getElementById("statKeys").textContent = totalKeysPressed;
+      document.getElementById("statKPP").textContent = totalPiecesDropped > 0
+        ? (totalKeysPressed / totalPiecesDropped).toFixed(2)
+        : "0.00";
+  
+      document.getElementById("statCombo").textContent = "x" + highestCombo;
+      document.getElementById("statLines").textContent = player.lines;
+
+  
+      const lpm = totalSeconds > 0
+        ? (player.lines / (totalSeconds / 60)).toFixed(0)
+        : "0";
+      document.getElementById("statLPM").textContent = lpm;
+  
+      document.getElementById("statHolds").textContent = holdCount;
+  
+      // Back button
+      const backBtn = document.getElementById("completionbackMode");
+      if (backBtn) {
+        backBtn.onclick = () => window.location.href = "select-mode.html";
+      }
+  
+      if (FrenzyTimerElement) {
+        FrenzyTimerElement.textContent = "0:00";
+      }
+  
     } else {
       if (FrenzyTimerElement) {
         FrenzyTimerElement.textContent = formatFrenzyTime(FrenzyTimeRemaining);
@@ -537,12 +556,10 @@ function drawDebris(ctx) {
     return false;
   }
 
-  function playerReset() {
+  function playerReset() {  function playerReset() {
     const pieces = 'TJLOSZI';
 if (!player.next) {
   player.next = getNextPiece();
-  totalPiecesDropped++;
-
 }
 player.matrix = player.next;
 player.next = getNextPiece();
@@ -580,7 +597,10 @@ player.next = getNextPiece();
       }
       return;
     }
+    totalPiecesDropped++;
+
   }
+
 
   function arenaSweep() {
     let linesCleared = 0;
