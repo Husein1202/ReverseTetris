@@ -194,6 +194,7 @@
                 <span class="volume-title">MUSIC</span>
               </div>
               <div class="volume-bar">
+               <audio id="mainTheme" src="Sound/Main-Theme.mp3" loop></audio>
                 <input type="range" id="musicVolume" min="0" max="100" value="100" oninput="updateVolumeValue('musicVolume')">
                 <span class="volume-percent" id="musicVolumeValue">100%</span>
               </div>
@@ -370,8 +371,6 @@ window.addEventListener('DOMContentLoaded', () => {
     document.getElementById("SettingScreen").style.display = "none";
   });
 </script>
-                  <audio id="mainTheme" src="Sound/Main-Theme.mp3" loop></audio>
-
               <script src="setting.js"></script>
 
 </body>
