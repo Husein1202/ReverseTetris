@@ -8,44 +8,57 @@ let highestCombo = 0;
 let nextPiece = null;
 
 window.onload = () => {
+  // Define the cool nicknames array
+  window.coolNicknames = [
+    "TetehTetris", "BlokGagal", "SalahNgetik", "SiLemot", "CieNoob",
+    "FrostByte", "SiPanik", "GaPernahMenang", "BlokManaBlok", "CipungTetris",
+    "MainSendiri", "ComboNgaco", "PakTetris", "MalesMain", "GaAdaSkill",
+    "SkuyMain", "KambingNgeLag", "HoloFury", "UjangGaming", "KlikAjaDulu"
+  ];
+
+  // Check the game mode from localStorage
   const mode = localStorage.getItem('selectedGameMode');
   const solo = localStorage.getItem('selectedSoloMode');
 
+  // If the mode is 'solo' and solo mode is not selected, show solo screen
   if (mode === 'solo' && !solo) {
     document.getElementById('modeScreen').style.display = 'none';
     document.getElementById('soloScreen').style.display = 'block';
   }
-};
 
-window.coolNicknames = [
-  "TetehTetris", "BlokGagal", "SalahNgetik", "SiLemot", "CieNoob",
-  "FrostByte", "SiPanik", "GaPernahMenang", "BlokManaBlok", "CipungTetris",
-  "MainSendiri", "ComboNgaco", "PakTetris", "MalesMain", "GaAdaSkill",
-  "SkuyMain", "KambingNgeLag", "HoloFury", "UjangGaming", "KlikAjaDulu"
-];
-
+  // Get the elements we need to work with
   const joinButton = document.getElementById('joinButton');
   const startScreen = document.getElementById('startScreen');
   const nicknameInput = document.getElementById('nicknameInput');
-  const storedNickname = localStorage.getItem('nickname') || 'Player';
 
+  // Ensure the elements exist before attaching event listener
   if (joinButton && nicknameInput && startScreen) {
-    joinButton.onclick = () => {
+    joinButton.addEventListener('click', () => {
       let name = nicknameInput.value.trim();
+      
+      // If name is empty, choose a random nickname from the array
       if (!name) {
-    name = window.coolNicknames[Math.floor(Math.random() * window.coolNicknames.length)];
+        name = window.coolNicknames[Math.floor(Math.random() * window.coolNicknames.length)];
       }
+      
+      // Save the nickname to localStorage
       localStorage.setItem('nickname', name);
+
+      // Hide the start screen and show the mode screen
       startScreen.style.display = "none";
       const modeScreen = document.getElementById('modeScreen');
       if (modeScreen) modeScreen.style.display = "flex";
+
+      // Set volume and play the main theme if it's available
       const mainTheme = document.getElementById('mainTheme');
       if (mainTheme) {
         mainTheme.volume = 0.5;
         mainTheme.play();
       }
-    };
+    });
   }
+};
+
   const countdownText = document.getElementById('countdownText');
   const gameOverOverlay = document.getElementById('gameOverOverlay');
   const restartButton = document.getElementById('restartButton');
