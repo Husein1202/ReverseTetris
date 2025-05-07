@@ -191,10 +191,10 @@
             <div class="setting-header">VOLUME & AUDIO</div>
             <div class="volume-control">
               <div class="volume-labels">
+                <audio id="mainTheme" src="Sound/Main-Theme.mp3" loop></audio>
                 <span class="volume-title">MUSIC</span>
               </div>
               <div class="volume-bar">
-               <audio id="mainTheme" src="Sound/Main-Theme.mp3" loop></audio>
                 <input type="range" id="musicVolume" min="0" max="100" value="100" oninput="updateVolumeValue('musicVolume')">
                 <span class="volume-percent" id="musicVolumeValue">100%</span>
               </div>
@@ -221,6 +221,7 @@
             </div>
         </div>
   </div>
+    <script src="setting.js"></script>
     <script>
     const nickname = localStorage.getItem('nickname') || 'GUEST';
 document.querySelectorAll('#nicknameTag').forEach(el => el.textContent = nickname);
@@ -371,7 +372,7 @@ window.addEventListener('DOMContentLoaded', () => {
     document.getElementById("SettingScreen").style.display = "none";
   });
 </script>
-              <script src="setting.js"></script>
+            
 
 </body>
 </html>
