@@ -245,9 +245,9 @@ document.querySelectorAll('.anon-label').forEach(label => {
     
 
     // Mode navigation
-    document.querySelectorAll('.mode-block').forEach(block => {
+document.querySelectorAll('.mode-block').forEach(block => {
   block.addEventListener('click', () => {
-    const selected = block.dataset.mode;
+    const selected = block.dataset.mode; // Ambil mode dari elemen yang diklik
 
     if (selected === 'solo') {
       localStorage.setItem('selectedGameMode', 'solo');
@@ -261,11 +261,13 @@ document.querySelectorAll('.anon-label').forEach(label => {
       document.getElementById('SettingScreen').style.display = 'block';
     }
 
+    // Pastikan event listener untuk tombol close tidak ditambahkan berulang
     const closeBtn = document.getElementById('closePopup');
-    if (closeBtn) {
+    if (closeBtn && !closeBtn.dataset.listenerAttached) {
       closeBtn.addEventListener('click', () => {
         document.getElementById('popupLier').classList.add('hidden');
       });
+      closeBtn.dataset.listenerAttached = true;
     }
   });
 });
