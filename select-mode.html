@@ -295,11 +295,11 @@ document.querySelectorAll('.anon-label').forEach(label => {
 
     // Music autoplay support
     window.addEventListener('DOMContentLoaded', () => {
-      const mainTheme = document.getElementById('mainTheme');
-      if (mainTheme) {
-        mainTheme.play().catch(() => {
+      const Main-Theme = document.getElementById('Main-Theme');
+      if (Main-Theme) {
+        Main-Theme.play().catch(() => {
           document.addEventListener('click', () => {
-            mainTheme.play().catch(() => {});
+            Main-Theme.play().catch(() => {});
           }, { once: true });
         });
       }
