@@ -157,7 +157,7 @@ if (mode === 'solo' && !solo) {
       }
     }
   }
-
+  
 
   const sounds = {
     rotate: document.getElementById('rotate'),
@@ -487,6 +487,7 @@ function drawDebris(ctx) {
     if (collide(arena, player)) {
       player.pos.y++;
       merge(arena, player);
+      totalPiecesDropped++;
     hold.hasHeld = false;
     hold.hasHeld = false;
     arenaSweep();
@@ -556,7 +557,7 @@ function drawDebris(ctx) {
     return false;
   }
 
-  function playerReset() {  function playerReset() {
+  function playerReset() {
     const pieces = 'TJLOSZI';
 if (!player.next) {
   player.next = getNextPiece();
@@ -600,7 +601,6 @@ player.next = getNextPiece();
     totalPiecesDropped++;
 
   }
-
 
   function arenaSweep() {
     let linesCleared = 0;
@@ -853,13 +853,14 @@ if (clearedRows.length > 0) {
         // ✅ Game dan timer benar-benar dimulai di sini
         playerReset();
         lastTime = performance.now();
+        gameStartTime = Date.now(); 
         timerStarted = true;
         update();
       }
     }, 1000);
   };
   
-  // ✅ Final call (ONLY this is)
+  // ✅ Final call (ONLY this)
   startCountdown(); // jangan ada baris lain setelah ini (seperti update() atau playerReset())
   
   let hold = {
