@@ -245,8 +245,8 @@ document.querySelectorAll('.anon-label').forEach(label => {
     
 
     // Mode navigation
-document.querySelectorAll('.mode-block').forEach(block => {
-  block.addEventListener('click', (event) => {
+    document.querySelectorAll('.mode-block').forEach(block => {
+  block.addEventListener('click', () => {
     const selected = block.dataset.mode;
 
     if (selected === 'solo') {
@@ -269,6 +269,8 @@ document.querySelectorAll('.mode-block').forEach(block => {
     }
   });
 });
+
+
 
     document.querySelector('.mode-lead').addEventListener('click', () => {
   window.location.href = 'ldboard.html';
