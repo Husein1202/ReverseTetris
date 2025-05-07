@@ -43,7 +43,6 @@
     joinButton.addEventListener('click', () => {
 let name = nicknameInput.value.trim();
 if (!name) {
-  const fallbackNames = window.coolNicknames || ["Player"];
   name = fallbackNames[Math.floor(Math.random() * fallbackNames.length)];
 }
       localStorage.setItem('nickname', name);
