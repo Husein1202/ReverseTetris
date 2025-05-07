@@ -260,8 +260,6 @@ document.querySelectorAll('.mode-block').forEach(block => {
       document.getElementById('modeScreen').style.display = 'none';
       document.getElementById('SettingScreen').style.display = 'block';
     }
-      });
-});
 
     const closeBtn = document.getElementById('closePopup');
     if (closeBtn) {
@@ -269,11 +267,8 @@ document.querySelectorAll('.mode-block').forEach(block => {
         document.getElementById('popupLier').classList.add('hidden');
       });
     }
-
-
-
-
-
+  });
+});
 
     document.querySelector('.mode-lead').addEventListener('click', () => {
   window.location.href = 'ldboard.html';
