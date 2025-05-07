@@ -70,10 +70,10 @@
   </div>
   
 
-  <div id="completionOverlay">
+  <div id="completionOverlay" style="display: none;">
     <div class="completion-stats-box">
       <h3 class="final-label">FINAL TIME</h3>
-      <div id="finalTimeDisplay">0:00.000</div>
+      <div id="statTime">0:00.000</div>
   
       <div class="stats-table">
         <div><span>PIECES PLACED</span><span id="statPieces">0</span></div>
@@ -82,17 +82,15 @@
         <div><span>KEYS / PIECE</span><span id="statKPP">0.00</span></div>
         <div><span>HOLDS</span><span id="statHolds">0</span></div>
         <div><span>SCORE</span><span id="statScore">0</span></div>
-        <div><span>LINES</span><span>0</span></div>
+        <div><span>Lines</span><span id="statLines">0</span></div>
         <div><span>LINES / MINUTE</span><span id="statLPM">0</span></div>
         <div><span>MAX COMBO</span><span id="statCombo">x0</span></div>
       </div>
   
-      <button id="completionbackMode">BACK TO MODE</button>
+      <button id="completionbackMode" onclick="window.location.href='select-mode.html'">Back</button>
     </div>
   </div>
   
-  
-
   <div id="countdownOverlay">
     <div id="countdownText">3</div>
   </div>
@@ -112,37 +110,37 @@
   <script src="script.js" defer></script>
 
   <!-- Sound Effects -->
-  <audio id="rotate" src="Sound/rotate.wav"></audio>
-  <audio id="move" src="Sound/move.wav"></audio>
-  <audio id="harddrop" src="Sound/harddrop.wav"></audio>
-  <audio id="lineclear" src="Sound/clearline.wav"></audio>
-  <audio id="gameover" src="Sound/game_over.mp3" preload="auto"></audio>
-  <audio id="countdown3" src="Sound/countdown3.wav"></audio>
-  <audio id="countdown2" src="Sound/countdown2.wav"></audio>
-  <audio id="countdown1" src="Sound/countdown1.wav"></audio>
-  <audio id="mainTheme" src="Sound/Main Theme.mp3" loop></audio>
-  <audio id="bgMusic" src="Sound/Tetris Soundtrack.mp3" loop></audio>
+  <audio id="rotate" src="sound/rotate.wav"></audio>
+  <audio id="move" src="sound/move.wav"></audio>
+  <audio id="harddrop" src="sound/harddrop.wav"></audio>
+  <audio id="lineclear" src="sound/clearline.wav"></audio>
+  <audio id="gameover" src="sound/game_over.mp3" preload="auto"></audio>
+  <audio id="countdown3" src="sound/countdown3.wav"></audio>
+  <audio id="countdown2" src="sound/countdown2.wav"></audio>
+  <audio id="countdown1" src="sound/countdown1.wav"></audio>
+  <audio id="mainTheme" src="sound/Main Theme.mp3" loop></audio>
+  <audio id="bgMusic" src="sound/Tetris Soundtrack.mp3" loop></audio>
 
   <!-- Combo Sounds -->
-  <audio id="combo1" src="Sound/combo_1_power.wav"></audio>
-  <audio id="combo2" src="Sound/combo_2_power.wav"></audio>
-  <audio id="combo3" src="Sound/combo_3_power.wav"></audio>
-  <audio id="combo4" src="Sound/combo_4_power.wav"></audio>
-  <audio id="combo5" src="Sound/combo_5_power.wav"></audio>
-  <audio id="combo6" src="Sound/combo_6_power.wav"></audio>
-  <audio id="combo7" src="Sound/combo_7_power.wav"></audio>
-  <audio id="combo8" src="Sound/combo_8_power.wav"></audio>
-  <audio id="combo9" src="Sound/combo_9_power.wav"></audio>
-  <audio id="combo10" src="Sound/combo_10_power.wav"></audio>
-  <audio id="combo11" src="Sound/combo_11_power.wav"></audio>
-  <audio id="combo12" src="Sound/combo_12_power.wav"></audio>
-  <audio id="combo13" src="Sound/combo_13_power.wav"></audio>
-  <audio id="combo14" src="Sound/combo_14_power.wav"></audio>
-  <audio id="combo15" src="Sound/combo_15_power.wav"></audio>
-  <audio id="combo16" src="Sound/combo_16_power.wav"></audio>
-  <audio id="comboBreak" src="Sound/combobreak.wav"></audio>
+  <audio id="combo1" src="sound/combo_1_power.wav"></audio>
+  <audio id="combo2" src="sound/combo_2_power.wav"></audio>
+  <audio id="combo3" src="sound/combo_3_power.wav"></audio>
+  <audio id="combo4" src="sound/combo_4_power.wav"></audio>
+  <audio id="combo5" src="sound/combo_5_power.wav"></audio>
+  <audio id="combo6" src="sound/combo_6_power.wav"></audio>
+  <audio id="combo7" src="sound/combo_7_power.wav"></audio>
+  <audio id="combo8" src="sound/combo_8_power.wav"></audio>
+  <audio id="combo9" src="sound/combo_9_power.wav"></audio>
+  <audio id="combo10" src="sound/combo_10_power.wav"></audio>
+  <audio id="combo11" src="sound/combo_11_power.wav"></audio>
+  <audio id="combo12" src="sound/combo_12_power.wav"></audio>
+  <audio id="combo13" src="sound/combo_13_power.wav"></audio>
+  <audio id="combo14" src="sound/combo_14_power.wav"></audio>
+  <audio id="combo15" src="sound/combo_15_power.wav"></audio>
+  <audio id="combo16" src="sound/combo_16_power.wav"></audio>
+  <audio id="comboBreak" src="sound/combobreak.wav"></audio>
 
-  <audio id="buttonSound" src="Sound/hit" preload="auto"></audio>
+  <audio id="buttonSound" src="sound/hit" preload="auto"></audio>
   <script>
     const buttonSound = document.getElementById("buttonSound");
 
