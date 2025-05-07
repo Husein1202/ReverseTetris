@@ -16,10 +16,13 @@ window.coolNicknames = [
 
 window.onload = () => {
   const mode = localStorage.getItem('selectedGameMode');
-const solo = localStorage.getItem('selectedSoloMode');
-if (mode === 'solo' && !solo) {
-  window.location.href = 'solo.html';
-}
+  const solo = localStorage.getItem('selectedSoloMode');
+
+  if (mode === 'solo' && !solo) {
+    document.getElementById('modeScreen').style.display = 'none';
+    document.getElementById('soloScreen').style.display = 'block';
+  }
+};
 
   const joinButton = document.getElementById('joinButton');
   const startScreen = document.getElementById('startScreen');
