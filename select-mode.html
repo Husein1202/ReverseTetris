@@ -196,7 +196,7 @@
               <audio id="mainTheme" src="Sound/Main-Theme.mp3" loop></audio>
               <div class="volume-bar">
                 <input type="range" id="musicVolume" min="0" max="100" value="100" oninput="updateVolumeValue('musicVolume')">
-                <span class="volume-percent" id="musicVolumeValue">100%</span>
+                <span class="volume-percent" id="musicVolumeValue">50%</span>
               </div>
               <div class="volume-labels">
                 <span class="volume-side loud">QUIET</span>
@@ -211,7 +211,7 @@
               </div>
               <div class="volume-bar">
                 <input type="range" id="fxVolume" min="0" max="100" value="100" oninput="updateVolumeValue('fxVolume')">
-                <span class="volume-percent" id="fxVolumeValue">100%</span>
+                <span class="volume-percent" id="fxVolumeValue">50%</span>
               </div>
               <div class="volume-labels">
                 <span class="volume-side loud">QUIET</span>
@@ -221,8 +221,6 @@
             </div>
         </div>
   </div>
-          <script src="setting.js"></script>
-
     <script>
     const nickname = localStorage.getItem('nickname') || 'GUEST';
 document.querySelectorAll('#nicknameTag').forEach(el => el.textContent = nickname);
@@ -373,5 +371,7 @@ window.addEventListener('DOMContentLoaded', () => {
     document.getElementById("SettingScreen").style.display = "none";
   });
 </script>
+              <script src="setting.js"></script>
+
 </body>
 </html>
