@@ -33,7 +33,7 @@ window.onload = () => {
     joinButton.onclick = () => {
       let name = nicknameInput.value.trim();
       if (!name) {
-        name = coolNicknames[Math.floor(Math.random() * coolNicknames.length)];
+    name = window.coolNicknames[Math.floor(Math.random() * window.coolNicknames.length)];
       }
       localStorage.setItem('nickname', name);
       startScreen.style.display = "none";
