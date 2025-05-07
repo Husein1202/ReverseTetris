@@ -24,9 +24,9 @@ function updateVolumeValue(id) {
 
   document.addEventListener("DOMContentLoaded", () => {
     // Main Theme Volume awal (50%)
-    const mainTheme = document.getElementById("Main-Theme");
-    if (mainTheme) {
-      mainTheme.volume = 0.05;
+    const Main-Theme = document.getElementById("Main-Theme");
+    if (Main-Theme) {
+      Main-Theme.volume = 0.05;
       const musicSlider = document.getElementById("musicVolume");
       const musicLabel = document.getElementById("musicVolumeValue");
       if (musicSlider) {
