@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Solo Modes - Reverse Tetris</title>
+  <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&display=swap" rel="stylesheet">
+</head>
+<body class="solo-body">
+  <div class="solo-header">
+    <h2>SOLO</h2>
+    <div class="player-info">
+      <div id="nicknameTag">GUEST</div>
+      <div class="anon-label">ANONYMOUS</div>
+      <img src="default-avatar.png" alt="Avatar" class="avatar" />
+    </div>
+  </div>
+  
+  <!-- NEW: Back Button under header -->
+  <div class="back-button-container">
+    <button id="backButton">BACK</button>
+  </div>
+  
+  <div class="solo-mode-list">
+    <div class="solo-mode-option  mode-40L" data-solo="40line">
+      <div class="solo-code">40L</div>
+      <div class="solo-desc">
+        <h3>40 LINES</h3>
+        <p>Complete 40 lines as quickly as possible</p>
+      </div>
+    </div>
+
+    <div class="solo-mode-option mode-blitz" data-solo="blitz">
+      <div class="solo-code">BLZ</div>
+      <div class="solo-desc">
+        <h3>BLITZ</h3>
+        <p>A two-minute race against the clock</p>
+      </div>
+    </div>
+
+    <div class="solo-mode-option mode-zen" data-solo="zen">
+      <div class="solo-code">ZEN</div>
+      <div class="solo-desc">
+        <h3>ZEN</h3>
+        <p>Relax or train in this neverending mode</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.querySelectorAll('.solo-mode-option').forEach(option => {
+      const soloMode = option.dataset.solo;
+  
+      option.addEventListener('click', () => {
+        localStorage.setItem('selectedSoloMode', soloMode);
+        localStorage.setItem('selectedGameMode', 'solo');
+  
+        if (soloMode === '40line') {
+          window.location.href = 'game.html'; // 👈 open the game directly
+        } else {
+          alert('This mode is not connected to the game yet.');
+          // Optionally redirect somewhere else
+          // window.location.href = 'game.html';
+        }
+      });
+    });
+  
+    document.getElementById('backButton').addEventListener('click', () => {
+      localStorage.setItem('goToModeScreen', 'true');
+      window.location.href = 'mode.html';
+    });
+  </script>
+
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      const mainTheme = document.getElementById('mainTheme');
+      if (mainTheme) {
+        mainTheme.volume = 0.2;
+        // Safari/Chrome may block autoplay until user interacts
+        mainTheme.play().catch(() => {
+          console.log("🔇 Audio playback blocked until user interaction.");
+          document.addEventListener('click', () => {
+            mainTheme.play().catch(() => {});
+          }, { once: true });
+        });
+      }
+    });
+  </script>
+  
+  <audio id="mainTheme" src="sound/Main Theme.mp3" loop></audio>
+</body>
+</html>
