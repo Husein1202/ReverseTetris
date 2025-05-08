@@ -130,11 +130,12 @@
         <div class="setting-section">
           <div class="setting-header">CONTROLS</div>
           <div class="preset-buttons">
-            <button onclick="loadPreset('guideline')">GUIDELINE</button>
-            <button onclick="loadPreset('custom')">CUSTOM</button>
+            <div class="preset-option" data-hit="click" data-preset="guideline">DEFAULT CONTROL</div>
+            <div class="preset-option" data-hit="click" data-preset="custom">CUSTOM CONTROLS</div>
           </div>
       
-          <div class="controls-table">
+          <!-- Default Controls (selalu ditampilkan di awal) -->
+          <div class="controls-table" id="default-controls">
             <div class="control-row"><span>MOVE LEFT</span><span id="key-left">Arrow Left, A</span></div>
             <div class="control-row"><span>MOVE RIGHT</span><span id="key-right">Arrow Right, D</span></div>
             <div class="control-row"><span>SOFT DROP</span><span id="key-softdrop">Arrow Up, W</span></div>
@@ -144,6 +145,54 @@
             <div class="control-row"><span>ROTATE 180</span><span id="key-180">C</span></div>
             <div class="control-row"><span>SWAP / HOLD PIECE</span><span id="key-hold">SHIFT, H</span></div>
           </div>
+
+          <!-- Custom Controls (disembunyikan di awal) -->
+          <table class="controls-table" id="custom-controls" style="display: none; width: 100%;">
+            <tbody>
+              <tr>
+                <td>MOVE LEFT</td>
+                <td><div class="custom-key" data-hit="click" data-action="left" data-slot="1">[NOT SET]</div></td>
+                <td><div class="custom-key" data-hit="click" data-action="left" data-slot="2">[NOT SET]</div></td>
+              </tr>
+              <tr>
+                <td>MOVE RIGHT</td>
+                <td><div class="custom-key" data-hit="click" data-action="right" data-slot="1">[NOT SET]</div></td>
+                <td><div class="custom-key" data-hit="click" data-action="right" data-slot="2">[NOT SET]</div></td>
+              </tr>
+              <tr>
+                <td>SOFT DROP</td>
+                <td><div class="custom-key" data-hit="click" data-action="softdrop" data-slot="1">[NOT SET]</div></td>
+                <td><div class="custom-key" data-hit="click" data-action="softdrop" data-slot="2">[NOT SET]</div></td>
+              </tr>
+              <tr>
+                <td>HARD DROP</td>
+                <td><div class="custom-key" data-hit="click" data-action="harddrop" data-slot="1">[NOT SET]</div></td>
+                <td><div class="custom-key" data-hit="click" data-action="harddrop" data-slot="2">[NOT SET]</div></td>
+              </tr>
+              <tr>
+                <td>ROTATE COUNTERCLOCKWISE</td>
+                <td><div class="custom-key" data-hit="click" data-action="ccw" data-slot="1">[NOT SET]</div></td>
+                <td><div class="custom-key" data-hit="click" data-action="ccw" data-slot="2">[NOT SET]</div></td>
+              </tr>
+              <tr>
+                <td>ROTATE CLOCKWISE</td>
+                <td><div class="custom-key" data-hit="click" data-action="cw" data-slot="1">[NOT SET]</div></td>
+                <td><div class="custom-key" data-hit="click" data-action="cw" data-slot="2">[NOT SET]</div></td>
+              </tr>
+              <tr>
+                <td>ROTATE 180</td>
+                <td><div class="custom-key" data-hit="click" data-action="rotate180" data-slot="1">[NOT SET]</div></td>
+                <td><div class="custom-key" data-hit="click" data-action="rotate180" data-slot="2">[NOT SET]</div></td>
+              </tr>
+              <tr>
+                <td>SWAP / HOLD PIECE</td>
+                <td><div class="custom-key" data-hit="click" data-action="hold" data-slot="1">[NOT SET]</div></td>
+                <td><div class="custom-key" data-hit="click" data-action="hold" data-slot="2">[NOT SET]</div></td>
+              </tr>
+            </tbody>
+          </table>
+          
+                    
         </div>
       
         <!-- HANDLING -->
