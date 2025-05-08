@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Frenzy Mode Game</title>
+  <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&display=swap" rel="stylesheet">
+</head>
+<body class="game-mode">
+
+  <div id="gamescreen">
+    <div class="game-header">
+        <div class="mode-label-box">Reverse Tetris</div>
+        <div class="mode-description">
+          FRENZY MODE<br><small>Survive 2 minutes of block chaos. Good luck</small>
+        </div>
+      </div>
+  </div>
+
+  <div class="game-container">
+  
+    <!-- Hold Container -->
+    <div class="hold-container">
+      <div class="hud-box">
+        <div class="hud-label">Hold</div>
+        <canvas id="holdCanvas" width="120" height="120"></canvas>
+      </div>
+    </div>
+  
+    <!-- Tetris Game Canvas -->
+    <div class="tetris-wrapper" style="position: relative;">
+      <canvas id="tetris" width="240" height="600"></canvas>
+      <div id="comboDisplay"></div>
+      <div id="pausedOverlay">PAUSED</div>
+    </div>
+  
+    <!-- HUD (Next Piece, Timer, etc) -->
+    <div class="hud">
+      <div class="hud-box">
+        <div class="hud-label">Next</div>
+        <canvas id="nextCanvas" width="120" height="120"></canvas>
+      </div>
+      
+      <div class="hud-box">
+        <div class="hud-label">Score</div>
+        <div id="score">0</div>
+      </div>
+      <div class="hud-box" id="FrenzyTimerBox">
+        <div class="hud-label">Time</div>
+        <div id="FrenzyTimer">02:00</div>
+      </div>
+      <div class="hud-box">
+        <div class="hud-label">Pause</div>
+        <button id="pauseButton">Pause</button>
+      </div>
+      <div class="hud-box" id="congratsBox">
+        <div id="congratsText">Let's Go</div>
+      </div>
+    </div>
+  </div>
+
+<div id="completionOverlay">
+  <div class="completion-stats-box">
+    <h3 class="final-label">FINAL SCORE</h3>
+    <div id="finalScoreDisplay">0</div>
+
+    <div class="stats-table">
+      <div><span>PIECES PLACED</span><span id="statPieces">0</span></div>
+      <div><span>PIECES / SECOND</span><span id="statPPS">0.00</span></div>
+      <div><span>KEYS PRESSED</span><span id="statKeys">0</span></div>
+      <div><span>KEYS / PIECE</span><span id="statKPP">0.00</span></div>
+      <div><span>HOLDS</span><span id="statHolds">0</span></div>
+      <div><span>SCORE</span><span id="statScore">0</span></div>
+      <div><span>LINES</span><span id="statLines">0</span></div>
+      <div><span>LINES / MINUTE</span><span id="statLPM">0</span></div>
+      <div><span>MAX COMBO</span><span id="statCombo">x0</span></div>
+    </div>
+
+    <button id="completionbackMode">BACK TO MODE</button>
+    <script>
+      document.getElementById("completionbackMode").addEventListener("click", () => {
+        window.location.href = "select-mode.html";
+      });
+    </script>
+    
+  </div>
+</div>
+
+  
+
+  <div id="countdownOverlay">
+    <div id="countdownText">3</div>
+  </div>
+
+  <script>
+    const needsInit = !localStorage.getItem('selectedGameMode') || !localStorage.getItem('selectedSoloMode');
+
+    if (needsInit) {
+      localStorage.setItem('selectedGameMode', 'solo');
+      localStorage.setItem('selectedSoloMode', 'zen');
+      localStorage.setItem('nickname', 'Guest');
+
+      window.location.reload();
+    }
+  </script>
+
+<<<<<<< HEAD
+  <script src="frenzy_gamescript.js" defer></script>
+
+  <!-- Sound Effects -->
+  <audio id="rotate" src="Sound/rotate.wav"></audio>
+  <audio id="move" src="Sound/move.wav"></audio>
+  <audio id="harddrop" src="Sound/harddrop.wav"></audio>
+  <audio id="lineclear" src="Sound/clearline.wav"></audio>
+  <audio id="gameover" src="Sound/game_over.wav"></audio> 
+  <audio id="levelup" src="Sound/levelup.wav"></audio>
+  <audio id="countdown3" src="Sound/countdown3.wav"></audio>
+  <audio id="countdown2" src="Sound/countdown2.wav"></audio>
+  <audio id="countdown1" src="Sound/countdown1.wav"></audio>
+  <audio id="mainTheme" src="Sound/Main Theme.mp3" loop></audio>
+  <audio id="bgMusic" src="Sound/Tetris Soundtrack.mp3" loop></audio>
+
+  <!-- Combo Sounds -->
+  <audio id="combo1" src="Sound/combo_1_power.wav"></audio>
+  <audio id="combo2" src="Sound/combo_2_power.wav"></audio>
+  <audio id="combo3" src="Sound/combo_3_power.wav"></audio>
+  <audio id="combo4" src="Sound/combo_4_power.wav"></audio>
+  <audio id="combo5" src="Sound/combo_5_power.wav"></audio>
+  <audio id="combo6" src="Sound/combo_6_power.wav"></audio>
+  <audio id="combo7" src="Sound/combo_7_power.wav"></audio>
+  <audio id="combo8" src="Sound/combo_8_power.wav"></audio>
+  <audio id="combo9" src="Sound/combo_9_power.wav"></audio>
+  <audio id="combo10" src="Sound/combo_10_power.wav"></audio>
+  <audio id="combo11" src="Sound/combo_11_power.wav"></audio>
+  <audio id="combo12" src="Sound/combo_12_power.wav"></audio>
+  <audio id="combo13" src="Sound/combo_13_power.wav"></audio>
+  <audio id="combo14" src="Sound/combo_14_power.wav"></audio>
+  <audio id="combo15" src="Sound/combo_15_power.wav"></audio>
+  <audio id="combo16" src="Sound/combo_16_power.wav"></audio>
+  <audio id="comboBreak" src="Sound/combobreak.wav"></audio>
+=======
+  <script src="./frenzy_gamescript.js" defer></script>
+
+  <!-- Sound Effects -->
+  <audio id="rotate" src="sound/rotate.wav"></audio>
+  <audio id="move" src="sound/move.wav"></audio>
+  <audio id="harddrop" src="sound/harddrop.wav"></audio>
+  <audio id="lineclear" src="sound/clearline.wav"></audio>
+  <audio id="gameover" src="sound/game_over.wav"></audio> 
+  <audio id="levelup" src="sound/levelup.wav"></audio>
+  <audio id="countdown3" src="sound/countdown3.wav"></audio>
+  <audio id="countdown2" src="sound/countdown2.wav"></audio>
+  <audio id="countdown1" src="sound/countdown1.wav"></audio>
+  <audio id="mainTheme" src="sound/Main Theme.mp3" loop></audio>
+  <audio id="bgMusic" src="sound/Tetris Soundtrack.mp3" loop></audio>
+
+  <!-- Combo Sounds -->
+  <audio id="combo1" src="sound/combo_1_power.wav"></audio>
+  <audio id="combo2" src="sound/combo_2_power.wav"></audio>
+  <audio id="combo3" src="sound/combo_3_power.wav"></audio>
+  <audio id="combo4" src="sound/combo_4_power.wav"></audio>
+  <audio id="combo5" src="sound/combo_5_power.wav"></audio>
+  <audio id="combo6" src="sound/combo_6_power.wav"></audio>
+  <audio id="combo7" src="sound/combo_7_power.wav"></audio>
+  <audio id="combo8" src="sound/combo_8_power.wav"></audio>
+  <audio id="combo9" src="sound/combo_9_power.wav"></audio>
+  <audio id="combo10" src="sound/combo_10_power.wav"></audio>
+  <audio id="combo11" src="sound/combo_11_power.wav"></audio>
+  <audio id="combo12" src="sound/combo_12_power.wav"></audio>
+  <audio id="combo13" src="sound/combo_13_power.wav"></audio>
+  <audio id="combo14" src="sound/combo_14_power.wav"></audio>
+  <audio id="combo15" src="sound/combo_15_power.wav"></audio>
+  <audio id="combo16" src="sound/combo_16_power.wav"></audio>
+  <audio id="comboBreak" src="sound/combobreak.wav"></audio>
+>>>>>>> b9a8924 (initial commit)
+
+  <audio id="buttonSound" src="sound/hit" preload="auto"></audio>
+  <script>
+    const buttonSound = document.getElementById("buttonSound");
+
+    function playButtonSound() {
+      if (buttonSound) {
+        buttonSound.currentTime = 0;
+        buttonSound.play().catch(() => {}); 
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      document.querySelectorAll("button").forEach(btn => {
+        btn.addEventListener("mouseenter", playButtonSound);
+        btn.addEventListener("click", playButtonSound);
+      });
+    });
+  </script>
+
+  <div id="comboTitle">Combo!</div>
+
+</body>
+<<<<<<< HEAD
+</html>
+=======
+</html>
+>>>>>>> b9a8924 (initial commit)
