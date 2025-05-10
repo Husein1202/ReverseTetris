@@ -56,17 +56,23 @@ const wallkickDataNormal = {
 
 // Untuk piece I
 const wallkickDataI = {
-  '0>1': [ {x:0, y:0}, {x:-2, y:0}, {x:1, y:0}, {x:-2, y:1}, {x:1, y:-2} ],
-  '1>0': [ {x:0, y:0}, {x:2, y:0}, {x:-1, y:0}, {x:2, y:-1}, {x:-1, y:2} ],
+  '0>1': [ {x: 0, y: 0}, {x: -2, y: 0}, {x: 1, y: 0}, {x: -2, y: 1}, {x: 1, y: -2} ],
+  '1>0': [ {x: 0, y: 0}, {x: 2, y: 0}, {x: -1, y: 0}, {x: 2, y: -1}, {x: -1, y: 2} ],
 
-  '1>2': [ {x:0, y:0}, {x:-1, y:0}, {x:2, y:0}, {x:-1, y:-2}, {x:2, y:1} ],
-  '2>1': [ {x:0, y:0}, {x:1, y:0}, {x:-2, y:0}, {x:1, y:2}, {x:-2, y:-1} ],
+  '1>2': [ {x: 0, y: 0}, {x: -1, y: 0}, {x: 2, y: 0}, {x: -1, y: -2}, {x: 2, y: 1} ],
+  '2>1': [ {x: 0, y: 0}, {x: 1, y: 0}, {x: -2, y: 0}, {x: 1, y: 2}, {x: -2, y: -1} ],
 
-  '2>3': [ {x:0, y:0}, {x:2, y:0}, {x:-1, y:0}, {x:2, y:-1}, {x:-1, y:2} ],
-  '3>2': [ {x:0, y:0}, {x:-2, y:0}, {x:1, y:0}, {x:-2, y:1}, {x:1, y:-2} ],
+  '2>3': [ {x: 0, y: 0}, {x: 2, y: 0}, {x: -1, y: 0}, {x: 2, y: -1}, {x: -1, y: 2} ],
+  '3>2': [ {x: 0, y: 0}, {x: -2, y: 0}, {x: 1, y: 0}, {x: -2, y: 1}, {x: 1, y: -2} ],
 
-  '3>0': [ {x:0, y:0}, {x:1, y:0}, {x:-2, y:0}, {x:1, y:2}, {x:-2, y:-1} ],
-  '0>3': [ {x:0, y:0}, {x:-1, y:0}, {x:2, y:0}, {x:-1, y:-2}, {x:2, y:1} ],
+  '3>0': [ {x: 0, y: 0}, {x: 1, y: 0}, {x: -2, y: 0}, {x: 1, y: 2}, {x: -2, y: -1} ],
+  '0>3': [ {x: 0, y: 0}, {x: -1, y: 0}, {x: 2, y: 0}, {x: -1, y: -2}, {x: 2, y: 1} ],
+
+  // ✅ Tambahkan untuk 180° (secara teknis 0>2 dan 1>3, dst)
+  '0>2': [ {x: 0, y: 0}, {x: -1, y: 0}, {x: 1, y: 0}, {x: -2, y: 0}, {x: 2, y: 0} ],
+  '2>0': [ {x: 0, y: 0}, {x: -1, y: 0}, {x: 1, y: 0}, {x: -2, y: 0}, {x: 2, y: 0} ],
+  '1>3': [ {x: 0, y: 0}, {x: -1, y: 0}, {x: 1, y: 0}, {x: -2, y: 0}, {x: 2, y: 0} ],
+  '3>1': [ {x: 0, y: 0}, {x: -1, y: 0}, {x: 1, y: 0}, {x: -2, y: 0}, {x: 2, y: 0} ],
 };
 
 function getWallkickData(type, from, to) {
@@ -260,9 +266,13 @@ function updateTimer(deltaTime) {
       'S': [[0, 6, 6], [6, 6, 0], [0, 0, 0]],
       'Z': [[7, 7, 0], [0, 7, 7], [0, 0, 0]],
     };
-    return pieces[type];
+  
+    return {
+      matrix: pieces[type],
+      type: type
+    };
   }
-
+  
   let bag = [];
 
 function getNextPiece() {
@@ -405,13 +415,12 @@ function drawDebris(ctx) {
 
     nextContext.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
     if (player.next) {
-      const offsetX = Math.floor((nextCanvas.width / 20 - player.next[0].length) / 2);
-      const offsetY = Math.floor((nextCanvas.height / 20 - player.next.length) / 2);
-      drawMatrix(player.next, { x: offsetX, y: offsetY }, nextContext);
-      drawDebris(context);  // ⬅️ Tambahkan ini di akhir draw()
-
+      const nextMatrix = player.next.matrix;
+      const offsetX = Math.floor((nextCanvas.width / 20 - nextMatrix[0].length) / 2);
+      const offsetY = Math.floor((nextCanvas.height / 20 - nextMatrix.length) / 2);
+      drawMatrix(nextMatrix, { x: offsetX, y: offsetY }, nextContext);
     }
-
+    
       // Hapus trail yang sudah hilang
       dropTrails = dropTrails.filter(trail =>
         trail.some(block => block.alpha > 0)
@@ -542,7 +551,7 @@ function drawDebris(ctx) {
     const from = player.rotationState;
     const to = (from + direction + 4) % 4;
   
-    const testMatrix = rotateMatrix(player.matrix, direction);
+    const testMatrix = rotateMatrix(player.matrix, direction);  // ✅ return matrix
     const kicks = getWallkickData(player.type, from, to);
   
     for (const offset of kicks) {
@@ -551,10 +560,9 @@ function drawDebris(ctx) {
         y: player.pos.y + offset.y,
       };
   
-      // ✅ Uji testMatrix dan testPos tanpa menyentuh player langsung
       if (!collide(arena, { matrix: testMatrix, pos: testPos })) {
-        player.matrix = testMatrix.map(row => [...row]); // salin beneran
-        player.pos = { ...testPos };
+        player.matrix = testMatrix.map(row => [...row]);  // ✅ deep copy
+        player.pos = testPos;
         player.rotationState = to;
   
         sounds.rotate.currentTime = 0;
@@ -566,18 +574,30 @@ function drawDebris(ctx) {
   
     return false;
   }
+  
     
   function tryRotate180() {
+    const from = player.rotationState;
+    const to = (from + 2) % 4;
+  
     const originalMatrix = JSON.parse(JSON.stringify(player.matrix));
     const originalPos = { x: player.pos.x, y: player.pos.y };
   
-    rotateMatrix180(player.matrix);
+    // Buat matrix baru hasil rotasi 180 (tanpa mutasi langsung)
+    const testMatrix = originalMatrix.map(row => [...row]).reverse().map(row => row.reverse());
+  
+    const kicks = getWallkickData(player.type, from, to);
   
     for (const offset of wallkick180Offsets) {
-      player.pos.x = originalPos.x + offset.x;
-      player.pos.y = originalPos.y + offset.y;
+      const testPos = {
+        x: originalPos.x + offset.x,
+        y: originalPos.y + offset.y,
+      };
   
-      if (!collide(arena, player)) {
+      if (!collide(arena, { matrix: testMatrix, pos: testPos })) {
+        player.matrix = testMatrix;
+        player.pos = testPos;
+        player.rotationState = to;
         sounds.rotate.currentTime = 0;
         sounds.rotate.play();
         rotatedLast = true;
@@ -585,12 +605,12 @@ function drawDebris(ctx) {
       }
     }
   
-    // ❗ Restore both position & matrix
+    // Restore posisi dan matrix jika semua gagal
     player.matrix = originalMatrix;
     player.pos = originalPos;
     return false;
   }
-    
+      
 
 // CW rotation
 function playerRotateCW() {
@@ -700,11 +720,14 @@ function playerRotate180() {
   
     
     const pieces = 'TJLOSZI';
-if (!player.next) {
-  player.next = getNextPiece();
-}
-player.matrix = player.next;
-player.next = getNextPiece();
+    if (!player.next) {
+      player.next = getNextPiece();
+    }
+    const next = player.next;
+    player.next = getNextPiece();
+    
+    player.matrix = next.matrix;
+    player.type = next.type;
     player.pos.y = arena.length - player.matrix.length;
     player.pos.x = (arena[0].length / 2 | 0) - (player.matrix[0].length / 2 | 0);
     player.rotationState = 0;

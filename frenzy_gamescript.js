@@ -15,19 +15,31 @@ const wallkickDataNormal = {
 };
 
 const wallkickDataI = {
-  '0>1': [ {x:0,y:0}, {x:-2,y:0}, {x:1,y:0}, {x:-2,y:1}, {x:1,y:-2} ],
-  '1>0': [ {x:0,y:0}, {x:2,y:0}, {x:-1,y:0}, {x:2,y:-1}, {x:-1,y:2} ],
-  '1>2': [ {x:0,y:0}, {x:-1,y:0}, {x:2,y:0}, {x:-1,y:-2}, {x:2,y:1} ],
-  '2>1': [ {x:0,y:0}, {x:1,y:0}, {x:-2,y:0}, {x:1,y:2}, {x:-2,y:-1} ],
-  '2>3': [ {x:0,y:0}, {x:2,y:0}, {x:-1,y:0}, {x:2,y:-1}, {x:-1,y:2} ],
-  '3>2': [ {x:0,y:0}, {x:-2,y:0}, {x:1,y:0}, {x:-2,y:1}, {x:1,y:-2} ],
-  '3>0': [ {x:0,y:0}, {x:1,y:0}, {x:-2,y:0}, {x:1,y:2}, {x:-2,y:-1} ],
-  '0>3': [ {x:0,y:0}, {x:-1,y:0}, {x:2,y:0}, {x:-1,y:-2}, {x:2,y:1} ],
+  '0>1': [ {x: 0, y: 0}, {x: -2, y: 0}, {x: 1, y: 0}, {x: -2, y: 1}, {x: 1, y: -2} ],
+  '1>0': [ {x: 0, y: 0}, {x: 2, y: 0}, {x: -1, y: 0}, {x: 2, y: -1}, {x: -1, y: 2} ],
+
+  '1>2': [ {x: 0, y: 0}, {x: -1, y: 0}, {x: 2, y: 0}, {x: -1, y: -2}, {x: 2, y: 1} ],
+  '2>1': [ {x: 0, y: 0}, {x: 1, y: 0}, {x: -2, y: 0}, {x: 1, y: 2}, {x: -2, y: -1} ],
+
+  '2>3': [ {x: 0, y: 0}, {x: 2, y: 0}, {x: -1, y: 0}, {x: 2, y: -1}, {x: -1, y: 2} ],
+  '3>2': [ {x: 0, y: 0}, {x: -2, y: 0}, {x: 1, y: 0}, {x: -2, y: 1}, {x: 1, y: -2} ],
+
+  '3>0': [ {x: 0, y: 0}, {x: 1, y: 0}, {x: -2, y: 0}, {x: 1, y: 2}, {x: -2, y: -1} ],
+  '0>3': [ {x: 0, y: 0}, {x: -1, y: 0}, {x: 2, y: 0}, {x: -1, y: -2}, {x: 2, y: 1} ],
+
+  // ✅ Tambahkan untuk 180° (secara teknis 0>2 dan 1>3, dst)
+  '0>2': [ {x: 0, y: 0}, {x: -1, y: 0}, {x: 1, y: 0}, {x: -2, y: 0}, {x: 2, y: 0} ],
+  '2>0': [ {x: 0, y: 0}, {x: -1, y: 0}, {x: 1, y: 0}, {x: -2, y: 0}, {x: 2, y: 0} ],
+  '1>3': [ {x: 0, y: 0}, {x: -1, y: 0}, {x: 1, y: 0}, {x: -2, y: 0}, {x: 2, y: 0} ],
+  '3>1': [ {x: 0, y: 0}, {x: -1, y: 0}, {x: 1, y: 0}, {x: -2, y: 0}, {x: 2, y: 0} ],
 };
 
 function getWallkickData(type, from, to) {
-  if (type === 'I') return wallkickDataI[`${from}>${to}`] || [ {x: 0, y: 0} ];
-  return wallkickDataNormal[`${from}>${to}`] || [ {x: 0, y: 0} ];
+  const key = `${from}>${to}`;
+  if (type === 'I') {
+    return wallkickDataI[key] || [ {x:0, y:0} ];
+  }
+  return wallkickDataNormal[key] || [ {x:0, y:0} ];
 }
 
 const wallkickOffsets = [
@@ -318,9 +330,13 @@ const pps = totalPiecesDropped / totalSeconds;
       'S': [[0, 6, 6], [6, 6, 0], [0, 0, 0]],
       'Z': [[7, 7, 0], [0, 7, 7], [0, 0, 0]],
     };
-    return pieces[type];
+  
+    return {
+      matrix: pieces[type],
+      type: type
+    };
   }
-
+  
   let bag = [];
 
 function getNextPiece() {
@@ -463,13 +479,12 @@ function drawDebris(ctx) {
 
     nextContext.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
     if (player.next) {
-      const offsetX = Math.floor((nextCanvas.width / 20 - player.next[0].length) / 2);
-      const offsetY = Math.floor((nextCanvas.height / 20 - player.next.length) / 2);
-      drawMatrix(player.next, { x: offsetX, y: offsetY }, nextContext);
-      drawDebris(context);  // ⬅️ Tambahkan ini di akhir draw()
-
+      const nextMatrix = player.next.matrix;
+      const offsetX = Math.floor((nextCanvas.width / 20 - nextMatrix[0].length) / 2);
+      const offsetY = Math.floor((nextCanvas.height / 20 - nextMatrix.length) / 2);
+      drawMatrix(nextMatrix, { x: offsetX, y: offsetY }, nextContext);
     }
-
+    
       // Hapus trail yang sudah hilang
       dropTrails = dropTrails.filter(trail =>
         trail.some(block => block.alpha > 0)
@@ -589,10 +604,11 @@ function drawDebris(ctx) {
   }
     
   function rotateMatrix180(matrix) {
-    matrix.reverse();
-    matrix.forEach(row => row.reverse());
+    const rotated = matrix.map(row => [...row]).reverse();
+    rotated.forEach(row => row.reverse());
+    return rotated;
   }
-  
+    
   function tryRotate(direction = 1) {
     const from = player.rotationState;
     const to = (from + direction + 4) % 4;
@@ -623,29 +639,34 @@ function drawDebris(ctx) {
   }
     
   function tryRotate180() {
+    const from = player.rotationState;
+    const to = (from + 2) % 4;
+  
     const originalMatrix = JSON.parse(JSON.stringify(player.matrix));
     const originalPos = { x: player.pos.x, y: player.pos.y };
   
-    rotateMatrix180(player.matrix);
+    // Buat matrix baru hasil rotasi 180 (tanpa mutasi langsung)
+    const testMatrix = originalMatrix.map(row => [...row]).reverse().map(row => row.reverse());
+  
+    const kicks = getWallkickData(player.type, from, to);
   
     for (const offset of wallkick180Offsets) {
-      player.pos.x = originalPos.x + offset.x;
-      player.pos.y = originalPos.y + offset.y;
+      const testPos = {
+        x: originalPos.x + offset.x,
+        y: originalPos.y + offset.y,
+      };
   
-      if (!collide(arena, player)) {
+      if (!collide(arena, { matrix: testMatrix, pos: testPos })) {
+        player.matrix = testMatrix;
+        player.pos = testPos;
+        player.rotationState = to;
         sounds.rotate.currentTime = 0;
         sounds.rotate.play();
         rotatedLast = true;
         return true;
       }
     }
-  
-    // ❗ Restore both position & matrix
-    player.matrix = originalMatrix;
-    player.pos = originalPos;
-    return false;
   }
-    
 
 // CW rotation
 function playerRotateCW() {
@@ -747,8 +768,11 @@ function playerRotate180() {
 if (!player.next) {
   player.next = getNextPiece();
 }
-player.matrix = player.next;
+const next = player.next;
 player.next = getNextPiece();
+
+player.matrix = next.matrix;
+player.type = next.type;
     player.pos.y = arena.length - player.matrix.length;
     player.pos.x = (arena[0].length / 2 | 0) - (player.matrix[0].length / 2 | 0);
     player.rotationState = 0;
