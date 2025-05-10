@@ -2,7 +2,53 @@ let canvas, context;
 let dropTrails = [];
 let trailPieces = [];
 let activeTrails = [];
-let undoStack = [];
+
+const wallkickDataNormal = {
+  '0>1': [ {x: 0, y: 0}, {x: -1, y: 0}, {x: -1, y: 1}, {x: 0, y: -2}, {x: -1, y: -2} ],
+  '1>0': [ {x: 0, y: 0}, {x: 1, y: 0}, {x: 1, y: -1}, {x: 0, y: 2}, {x: 1, y: 2} ],
+  '1>2': [ {x: 0, y: 0}, {x: 1, y: 0}, {x: 1, y: -1}, {x: 0, y: 2}, {x: 1, y: 2} ],
+  '2>1': [ {x: 0, y: 0}, {x: -1, y: 0}, {x: -1, y: 1}, {x: 0, y: -2}, {x: -1, y: -2} ],
+  '2>3': [ {x: 0, y: 0}, {x: 1, y: 0}, {x: 1, y: 1}, {x: 0, y: -2}, {x: 1, y: -2} ],
+  '3>2': [ {x: 0, y: 0}, {x: -1, y: 0}, {x: -1, y: -1}, {x: 0, y: 2}, {x: -1, y: 2} ],
+  '3>0': [ {x: 0, y: 0}, {x: -1, y: 0}, {x: -1, y: -1}, {x: 0, y: 2}, {x: -1, y: 2} ],
+  '0>3': [ {x: 0, y: 0}, {x: 1, y: 0}, {x: 1, y: 1}, {x: 0, y: -2}, {x: 1, y: -2} ],
+};
+
+const wallkickDataI = {
+  '0>1': [ {x:0,y:0}, {x:-2,y:0}, {x:1,y:0}, {x:-2,y:1}, {x:1,y:-2} ],
+  '1>0': [ {x:0,y:0}, {x:2,y:0}, {x:-1,y:0}, {x:2,y:-1}, {x:-1,y:2} ],
+  '1>2': [ {x:0,y:0}, {x:-1,y:0}, {x:2,y:0}, {x:-1,y:-2}, {x:2,y:1} ],
+  '2>1': [ {x:0,y:0}, {x:1,y:0}, {x:-2,y:0}, {x:1,y:2}, {x:-2,y:-1} ],
+  '2>3': [ {x:0,y:0}, {x:2,y:0}, {x:-1,y:0}, {x:2,y:-1}, {x:-1,y:2} ],
+  '3>2': [ {x:0,y:0}, {x:-2,y:0}, {x:1,y:0}, {x:-2,y:1}, {x:1,y:-2} ],
+  '3>0': [ {x:0,y:0}, {x:1,y:0}, {x:-2,y:0}, {x:1,y:2}, {x:-2,y:-1} ],
+  '0>3': [ {x:0,y:0}, {x:-1,y:0}, {x:2,y:0}, {x:-1,y:-2}, {x:2,y:1} ],
+};
+
+
+function getWallkickData(type, from, to) {
+  if (type === 'I') return wallkickDataI[`${from}>${to}`] || [ {x: 0, y: 0} ];
+  return wallkickDataNormal[`${from}>${to}`] || [ {x: 0, y: 0} ];
+}
+
+const wallkickOffsets = [
+  { x: 0, y: 0 },
+  { x: -1, y: 0 },
+  { x: 1, y: 0 },
+  { x: 0, y: -1 },
+  { x: 0, y: 1 }
+];
+
+const wallkick180Offsets = [
+  { x: 0, y: 0 },
+  { x: -1, y: 0 },
+  { x: 1, y: 0 },
+  { x: 0, y: -1 },
+  { x: 0, y: 1 },
+  { x: -2, y: 0 },
+  { x: 2, y: 0 }
+];
+
 
 window.coolNicknames = [
   "TetehTetris", "BlokGagal", "SalahNgetik", "SiLemot", "CieNoob",
@@ -135,6 +181,15 @@ let garbageQueue = 0;
 let garbageInterval = 1000; // 20 detik
 let lastGarbageTime = Date.now();
 let lastGarbagePattern = []; // menyimpan pola garbage untuk restart
+let lockTimeout;
+let landedY = null; // tambahkan global di awal
+let isSoftDropping = false;
+const SOFT_DROP_INTERVAL = 40; // kamu bisa tweak ini sesuai feel
+
+let lockPending = false;
+let lockResetCount = 0;
+const LOCK_DELAY_MS = 500; // Durasi delay sebelum piece dikunci (dalam milidetik)
+
 
 const cheeseImage = new Image();
 cheeseImage.src = 'cheese.jpg'; // pastikan path ini sesuai lokasi file
@@ -216,7 +271,7 @@ function getNextPiece() {
 function drawMatrix(matrix, offset, ctx, ghost = false) {
     const glowColors = {
       1: 'rgba(255, 0, 102, 0.7)',    // T
-      2: 'rgba(255, 204, 0, 0.7)',    // O
+      2: 'rgba(255, 204, 0, 0.7)',    // Oas
       3: 'rgba(255, 128, 0, 0.7)',    // L
       4: 'rgba(0, 0, 255, 0.7)',      // J
       5: 'rgba(0, 204, 255, 0.7)',    // I
@@ -458,7 +513,26 @@ function drawDebris(ctx) {
     setTimeout(() => canvas.classList.remove('shake'), 300);
   }
     
+  function startLockDelay() {
+    if (lockTimeout) clearTimeout(lockTimeout);
   
+    lockTimeout = setTimeout(() => {
+      if (!isTouchingGround()) {
+        lockPending = false;
+        console.log('[LOCK CANCELLED] Not touching ground');
+        return;
+      }
+  
+      console.log('[LOCK COMMIT] Piece locked');
+      merge(arena, player);
+      hold.hasHeld = false;
+      arenaSweep();
+      playerReset();
+      lockPending = false;
+      lockResetCount = 0;
+    }, LOCK_DELAY_MS);
+  }
+    
             
   function playerDrop() {
     player.pos.y--;
@@ -488,9 +562,15 @@ function drawDebris(ctx) {
   
   function playerMove(dir) {
     player.pos.x += dir;
+  
     if (collide(arena, player)) {
       player.pos.x -= dir;
     } else {
+      if (lockPending && lockResetCount < MAX_LOCK_RESETS) {
+        lockResetCount++;
+        startLockDelay();
+      }
+  
       sounds.move.currentTime = 0;
       sounds.move.play();
     }
@@ -518,13 +598,145 @@ function drawDebris(ctx) {
     }
   }
 
-  // Menggabungkan posisi tetromino aktif ke papan permanen //
+  function rotateMatrix(matrix, direction = 1) {
+    const newMatrix = matrix.map(row => [...row]);
+    for (let y = 0; y < newMatrix.length; ++y) {
+      for (let x = 0; x < y; ++x) {
+        [newMatrix[x][y], newMatrix[y][x]] = [newMatrix[y][x], newMatrix[x][y]];
+      }
+    }
+    if (direction > 0) {
+      newMatrix.forEach(row => row.reverse());
+    } else {
+      newMatrix.reverse();
+    }
+    return newMatrix;
+  }
+  
+  function rotateMatrix180(matrix) {
+    matrix.reverse();
+    matrix.forEach(row => row.reverse());
+  }
+  
+  
+  function isValidPlacement(matrix, pos, arena) {
+    for (let y = 0; y < matrix.length; ++y) {
+      for (let x = 0; x < matrix[y].length; ++x) {
+        if (matrix[y][x] !== 0) {
+          const ay = y + pos.y;
+          const ax = x + pos.x;
+          if (
+            ay < 0 || ay >= arena.length ||
+            ax < 0 || ax >= arena[0].length ||
+            arena[ay][ax] !== 0 // ⬅️ termasuk garbage line (8) sebagai tidak valid
+          ) {
+            return false;
+          }
+        }
+      }
+    }
+    return true;
+  }
+  
+  
+  function tryRotate(direction = 1) {
+    const from = player.rotationState;
+    const to = (from + direction + 4) % 4;
+  
+    const testMatrix = rotateMatrix(player.matrix, direction);
+    const kicks = getWallkickData(player.type, from, to);
+  
+    for (const offset of kicks) {
+      const testPos = {
+        x: player.pos.x + offset.x,
+        y: player.pos.y + offset.y,
+      };
+  
+      if (isValidPlacement(testMatrix, testPos, arena)) {
+        player.matrix = testMatrix;
+        player.pos = testPos;
+        player.rotationState = to;
+  
+        sounds.rotate.currentTime = 0;
+        sounds.rotate.play();
+        rotatedLast = true;
+        return true;
+      }
+    }
+  
+    return false;
+  }
+    
+  function tryRotate180() {
+    const from = player.rotationState;
+    const to = (from + 2) % 4;
+  
+    const originalMatrix = JSON.parse(JSON.stringify(player.matrix));
+    const originalPos = { x: player.pos.x, y: player.pos.y };
+  
+    rotateMatrix180(player.matrix);
+  
+    const kicks = getWallkickData(player.type, from, to);
+    for (const offset of kicks) {
+      const testPos = {
+        x: originalPos.x + offset.x,
+        y: originalPos.y + offset.y,
+      };
+  
+      if (isValidPlacement(player.matrix, testPos, arena)) {
+        player.pos = testPos;
+        player.rotationState = to;
+        sounds.rotate.currentTime = 0;
+        sounds.rotate.play();
+        rotatedLast = true;
+        return true;
+      }
+    }
+  
+    player.matrix = originalMatrix;
+    player.pos = originalPos;
+    return false;
+  }
+      
+  function playerRotateCW() {
+    if (tryRotate(1)) {
+      if (lockPending && lockResetCount < MAX_LOCK_RESETS) {
+        lockResetCount++;
+        startLockDelay();
+      }
+    }
+  }
+  
+  function playerRotateCCW() {
+    if (tryRotate(-1)) {
+      if (lockPending && lockResetCount < MAX_LOCK_RESETS) {
+        lockResetCount++;
+        startLockDelay();
+      }
+    }
+  }
+  
+  function playerRotate180() {
+    if (tryRotate180()) {
+      if (lockPending && lockResetCount < MAX_LOCK_RESETS) {
+        lockResetCount++;
+        startLockDelay();
+      }
+    }
+  }
+    // Menggabungkan posisi tetromino aktif ke papan permanen //
+    
   function merge(arena, player) {
     player.matrix.forEach((row, y) => {
       row.forEach((value, x) => {
         const ay = y + player.pos.y;
         const ax = x + player.pos.x;
-        if (value !== 0 && ay >= 0 && ay < arena.length && ax >= 0 && ax < arena[0].length) {
+        if (
+          value !== 0 &&
+          ay >= 0 && ay < arena.length &&
+          ax >= 0 && ax < arena[0].length &&
+          arena[ay][ax] !== 8 // ⛔ JANGAN TIMPA GARBAGE
+        ) {
           arena[ay][ax] = value;
         }
       });
@@ -552,7 +764,11 @@ function drawDebris(ctx) {
         if (m[y][x] !== 0) {
           const ay = y + o.y;
           const ax = x + o.x;
-          if (ay < 0 || ay >= arena.length || ax < 0 || ax >= arena[0].length || arena[ay][ax] !== 0) {
+          if (
+            ay < 0 || ay >= arena.length ||
+            ax < 0 || ax >= arena[0].length ||
+            arena[ay][ax] !== 0 // ⬅️ tetap hitung 8 sebagai benturan
+          ) {
             return true;
           }
         }
@@ -560,7 +776,7 @@ function drawDebris(ctx) {
     }
     return false;
   }
-
+  
   const COLS = 12;
 const ROWS = 30;
 
@@ -589,6 +805,8 @@ const ROWS = 30;
 
     player.pos.y = arena.length - player.matrix.length;
     player.pos.x = (arena[0].length / 2 | 0) - (player.matrix[0].length / 2 | 0);
+    player.rotationState = 0;
+
 
     if (collide(arena, player)) {
         if (mode !== "medi") {
@@ -764,7 +982,14 @@ function resetGame() {
   }
   
   document.addEventListener('keydown', event => {
-    if (controlsLocked || isPaused || !timerStarted) return;
+    console.log("[KEY]", event.key); // ⬅️ Tambahin ini duluan buat tes
+
+    event.preventDefault(); 
+    totalKeysPressed++;
+
+    if (event.key === 'o' || event.key === 'O') {
+      document.getElementById("completionOverlay").style.display = "flex";
+    }
     
     if (!isPaused || event.key.toLowerCase() === 'p') {
       
@@ -787,24 +1012,25 @@ function resetGame() {
           rotatedLast = false;
           break;
     
-        case 's': case 'S':
-        case 'ArrowDown':
-          playerRotate();
+          case 's': case 'S':
+          case 'ArrowDown':
+          playerRotateCW();
           break;
-    
+                
         case ' ':
           event.preventDefault();
           playerHardDrop();
           rotatedLast = false;
           break;
     
-        case 'z': case 'Z':
-          playerRotate(); playerRotate(); playerRotate();
+          case 'z': case 'Z':
+          playerRotateCCW();
           break;
-    
-        case 'c': case 'C':
-          playerRotate(); playerRotate();
-          break;
+          
+          case 'c': case 'C':
+            playerRotate180();
+            break;
+          
     
         case 'Shift': case 'ShiftLeft':
         case 'h': case 'H':

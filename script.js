@@ -9,7 +9,73 @@ let nextPiece = null;
 let hasCompleted40Lines = false;
 let startTime = 0;
 let elapsedTime = 0;
+let lockPending = false;
+let lockTimeout = null;
+let lockResetCount = 0;
+const LOCK_DELAY_MS = 500; // Durasi delay sebelum piece dikunci (dalam milidetik)
+const MAX_LOCK_RESETS = 15;
+let landedY = null; // tambahkan global di awal
+let isSoftDropping = false;
+const SOFT_DROP_INTERVAL = 40; // kamu bisa tweak ini sesuai feel
 
+
+
+const wallkickOffsets = [
+  { x: 0, y: 0 },
+  { x: -1, y: 0 },
+  { x: 1, y: 0 },
+  { x: 0, y: -1 },
+  { x: 0, y: 1 }
+];
+
+const wallkick180Offsets = [
+  { x: 0, y: 0 },
+  { x: -1, y: 0 },
+  { x: 1, y: 0 },
+  { x: 0, y: -1 },
+  { x: 0, y: 1 },
+  { x: -2, y: 0 },
+  { x: 2, y: 0 }
+];
+
+// Untuk piece non-I
+const wallkickDataNormal = {
+  '0>1': [ {x:0, y:0}, {x:-1, y:0}, {x:-1, y:1}, {x:0, y:-2}, {x:-1, y:-2} ],
+  '1>0': [ {x:0, y:0}, {x:1, y:0}, {x:1, y:-1}, {x:0, y:2}, {x:1, y:2} ],
+
+  '1>2': [ {x:0, y:0}, {x:1, y:0}, {x:1, y:-1}, {x:0, y:2}, {x:1, y:2} ],
+  '2>1': [ {x:0, y:0}, {x:-1, y:0}, {x:-1, y:1}, {x:0, y:-2}, {x:-1, y:-2} ],
+
+  '2>3': [ {x:0, y:0}, {x:1, y:0}, {x:1, y:1}, {x:0, y:-2}, {x:1, y:-2} ],
+  '3>2': [ {x:0, y:0}, {x:-1, y:0}, {x:-1, y:-1}, {x:0, y:2}, {x:-1, y:2} ],
+
+  '3>0': [ {x:0, y:0}, {x:-1, y:0}, {x:-1, y:-1}, {x:0, y:2}, {x:-1, y:2} ],
+  '0>3': [ {x:0, y:0}, {x:1, y:0}, {x:1, y:1}, {x:0, y:-2}, {x:1, y:-2} ],
+};
+
+
+// Untuk piece I
+const wallkickDataI = {
+  '0>1': [ {x:0, y:0}, {x:-2, y:0}, {x:1, y:0}, {x:-2, y:1}, {x:1, y:-2} ],
+  '1>0': [ {x:0, y:0}, {x:2, y:0}, {x:-1, y:0}, {x:2, y:-1}, {x:-1, y:2} ],
+
+  '1>2': [ {x:0, y:0}, {x:-1, y:0}, {x:2, y:0}, {x:-1, y:-2}, {x:2, y:1} ],
+  '2>1': [ {x:0, y:0}, {x:1, y:0}, {x:-2, y:0}, {x:1, y:2}, {x:-2, y:-1} ],
+
+  '2>3': [ {x:0, y:0}, {x:2, y:0}, {x:-1, y:0}, {x:2, y:-1}, {x:-1, y:2} ],
+  '3>2': [ {x:0, y:0}, {x:-2, y:0}, {x:1, y:0}, {x:-2, y:1}, {x:1, y:-2} ],
+
+  '3>0': [ {x:0, y:0}, {x:1, y:0}, {x:-2, y:0}, {x:1, y:2}, {x:-2, y:-1} ],
+  '0>3': [ {x:0, y:0}, {x:-1, y:0}, {x:2, y:0}, {x:-1, y:-2}, {x:2, y:1} ],
+};
+
+function getWallkickData(type, from, to) {
+  const key = `${from}>${to}`;
+  if (type === 'I') {
+    return wallkickDataI[key] || [ {x:0, y:0} ];
+  }
+  return wallkickDataNormal[key] || [ {x:0, y:0} ];
+}
 
 
 window.coolNicknames = [
@@ -412,52 +478,189 @@ function drawDebris(ctx) {
   }
   
             
+  let landedY = null; // tambahkan global di awal
+
   function playerDrop() {
+    // Jangan drop kalau sudah mulai lock delay
+    if (lockPending) return;
+  
     player.pos.y--;
     if (collide(arena, player)) {
       player.pos.y++;
-      merge(arena, player);
-    hold.hasHeld = false;
-    hold.hasHeld = false;
-    arenaSweep();
-      playerReset();
+      
+      if (!lockPending) {
+        console.log('[LOCK] Piece landed. Starting lock delay...');
+        lockPending = true;
+        landedY = player.pos.y; // simpan posisi saat landed
+        startLockDelay();
+      }
+    } else {
+      dropCounter = 0;
     }
-    dropCounter = 0;
   }
-
+  
   function playerMove(dir) {
     player.pos.x += dir;
+  
     if (collide(arena, player)) {
       player.pos.x -= dir;
     } else {
+      if (lockPending && lockResetCount < MAX_LOCK_RESETS) {
+        lockResetCount++;
+        startLockDelay();
+      }
+  
       sounds.move.currentTime = 0;
       sounds.move.play();
     }
   }
 
-  function playerRotate() {
-    const m = player.matrix;
-    for (let y = 0; y < m.length; ++y) {
+  function rotateMatrix(matrix, direction = 1) {
+    const newMatrix = matrix.map(row => [...row]);
+  
+    for (let y = 0; y < newMatrix.length; ++y) {
       for (let x = 0; x < y; ++x) {
-        [m[x][y], m[y][x]] = [m[y][x], m[x][y]];
+        [newMatrix[x][y], newMatrix[y][x]] = [newMatrix[y][x], newMatrix[x][y]];
       }
     }
-    m.forEach(row => row.reverse());
-    if (collide(arena, player)) {
-      m.forEach(row => row.reverse());
-      for (let y = 0; y < m.length; ++y) {
-        for (let x = 0; x < y; ++x) {
-          [m[x][y], m[y][x]] = [m[y][x], m[x][y]];
-        }
-      }
+  
+    if (direction > 0) {
+      newMatrix.forEach(row => row.reverse());
     } else {
-      sounds.rotate.currentTime = 0;
-      sounds.rotate.play();
-    rotatedLast = true;
+      newMatrix.reverse();
+    }
+  
+    return newMatrix;
+  }
+    
+  function rotateMatrix180(matrix) {
+    matrix.reverse();
+    matrix.forEach(row => row.reverse());
+  }
+  
+  function tryRotate(direction = 1) {
+    const from = player.rotationState;
+    const to = (from + direction + 4) % 4;
+  
+    const testMatrix = rotateMatrix(player.matrix, direction);
+    const kicks = getWallkickData(player.type, from, to);
+  
+    for (const offset of kicks) {
+      const testPos = {
+        x: player.pos.x + offset.x,
+        y: player.pos.y + offset.y,
+      };
+  
+      // ✅ Uji testMatrix dan testPos tanpa menyentuh player langsung
+      if (!collide(arena, { matrix: testMatrix, pos: testPos })) {
+        player.matrix = testMatrix.map(row => [...row]); // salin beneran
+        player.pos = { ...testPos };
+        player.rotationState = to;
+  
+        sounds.rotate.currentTime = 0;
+        sounds.rotate.play();
+        rotatedLast = true;
+        return true;
+      }
+    }
+  
+    return false;
+  }
+    
+  function tryRotate180() {
+    const originalMatrix = JSON.parse(JSON.stringify(player.matrix));
+    const originalPos = { x: player.pos.x, y: player.pos.y };
+  
+    rotateMatrix180(player.matrix);
+  
+    for (const offset of wallkick180Offsets) {
+      player.pos.x = originalPos.x + offset.x;
+      player.pos.y = originalPos.y + offset.y;
+  
+      if (!collide(arena, player)) {
+        sounds.rotate.currentTime = 0;
+        sounds.rotate.play();
+        rotatedLast = true;
+        return true;
+      }
+    }
+  
+    // ❗ Restore both position & matrix
+    player.matrix = originalMatrix;
+    player.pos = originalPos;
+    return false;
+  }
+    
+
+// CW rotation
+function playerRotateCW() {
+  if (tryRotate(1)) {
+    if (lockPending && lockResetCount < MAX_LOCK_RESETS) {
+      lockResetCount++;
+      startLockDelay();
     }
   }
+}
+
+// CCW rotation
+function playerRotateCCW() {
+  if (tryRotate(-1)) {
+    if (lockPending && lockResetCount < MAX_LOCK_RESETS) {
+      lockResetCount++;
+      startLockDelay();
+    }
+  }
+}
+
+// 180° rotation
+function playerRotate180() {
+  if (tryRotate180()) {
+    if (lockPending && lockResetCount < MAX_LOCK_RESETS) {
+      lockResetCount++;
+      startLockDelay();
+    }
+  }
+}
+
+  function playerRotate() {
+    if (tryRotate(1)) {
+      if (lockPending && lockResetCount < MAX_LOCK_RESETS) {
+        lockResetCount++;
+        startLockDelay();
+      }
+    }
+  }
+    
+  function startLockDelay() {
+    if (lockTimeout) clearTimeout(lockTimeout);
+  
+    lockTimeout = setTimeout(() => {
+      // Cek apakah MASIH MENYENTUH dasar
+      player.pos.y--;
+      const stillTouching = collide(arena, player);
+      player.pos.y++; // restore posisi
+    
+      if (!stillTouching) {
+        lockPending = false;
+        console.log('[LOCK CANCELLED] No longer touching');
+        return;
+      }
+    
+      console.log('[LOCK COMMIT] Piece locked');
+      merge(arena, player);
+      hold.hasHeld = false;
+      arenaSweep();
+      playerReset();
+      lockPending = false;
+      lockResetCount = 0;
+      landedY = null;
+    }, LOCK_DELAY_MS);
+      }
+      
 
   function merge(arena, player) {
+    console.log('[MERGE] Piece merged at Y:', player.pos.y);
+
     player.matrix.forEach((row, y) => {
       row.forEach((value, x) => {
         const ay = y + player.pos.y;
@@ -487,6 +690,15 @@ function drawDebris(ctx) {
   }
 
   function playerReset() {
+    // Cancel any pending lock
+    if (lockTimeout) {
+      clearTimeout(lockTimeout);
+      lockTimeout = null;
+    }
+    lockPending = false;
+    lockResetCount = 0;
+  
+    
     const pieces = 'TJLOSZI';
 if (!player.next) {
   player.next = getNextPiece();
@@ -495,6 +707,8 @@ player.matrix = player.next;
 player.next = getNextPiece();
     player.pos.y = arena.length - player.matrix.length;
     player.pos.x = (arena[0].length / 2 | 0) - (player.matrix[0].length / 2 | 0);
+    player.rotationState = 0;
+
     if (collide(arena, player)) {
       if (!isGameOver) {
         gameOverOverlay.style.display = 'flex';
@@ -503,6 +717,7 @@ player.next = getNextPiece();
         sounds.gameOverAlt.currentTime = 0;
         sounds.gameOverAlt.play();
         isGameOver = true;
+
       // Save recent solo score
       const recentScores = JSON.parse(localStorage.getItem("soloRecentScores") || "[]");
       recentScores.unshift({ name: nickname, score: player.score });
@@ -528,6 +743,8 @@ player.next = getNextPiece();
       return;
     }
     totalPiecesDropped++;
+    player.rotationState = 0;
+
 
   }
 
@@ -675,8 +892,19 @@ if (clearedRows.length > 0) {
     lastTime = time;
   
     dropCounter += deltaTime;
-    if (dropCounter > dropInterval) playerDrop();
-  
+    if (dropCounter > (isSoftDropping ? SOFT_DROP_INTERVAL : dropInterval)) {
+      playerDrop();
+      dropCounter = 0;
+    }
+
+    if (!lockPending) {
+      if (dropCounter > (isSoftDropping ? SOFT_DROP_INTERVAL : dropInterval)) {
+        playerDrop();
+        dropCounter = 0;
+      }
+    }
+    
+      
     updateTimer(deltaTime); // ✅ Tambahan ini penting
     updateDebris(deltaTime);
     draw(deltaTime);
@@ -685,6 +913,15 @@ if (clearedRows.length > 0) {
   }
   
   document.addEventListener('keydown', event => {
+    console.log("[KEY]", event.key); // ⬅️ Tambahin ini duluan buat tes
+
+    document.addEventListener('keyup', (event) => {
+      if (event.key === 'w' || event.key === 'W' || event.key === 'ArrowUp') {
+        isSoftDropping = false;
+      }
+    });
+    
+    event.preventDefault(); 
     totalKeysPressed++;
 
     if (event.key === 'o' || event.key === 'O') {
@@ -709,27 +946,29 @@ if (clearedRows.length > 0) {
         case 'w': case 'W':
         case 'ArrowUp':
           playerDrop();
+          isSoftDropping = true;
           rotatedLast = false;
           break;
     
-        case 's': case 'S':
-        case 'ArrowDown':
-          playerRotate();
+          case 's': case 'S':
+          case 'ArrowDown':
+          playerRotateCW();
           break;
-    
+                
         case ' ':
           event.preventDefault();
           playerHardDrop();
           rotatedLast = false;
           break;
     
-        case 'z': case 'Z':
-          playerRotate(); playerRotate(); playerRotate();
+          case 'z': case 'Z':
+          playerRotateCCW();
           break;
-    
-        case 'c': case 'C':
-          playerRotate(); playerRotate();
-          break;
+          
+          case 'c': case 'C':
+            playerRotate180();
+            break;
+          
     
         case 'Shift': case 'ShiftLeft':
         case 'h': case 'H':

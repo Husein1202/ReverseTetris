@@ -178,5 +178,28 @@ window.addEventListener('DOMContentLoaded', () => {
   loadPreset('guideline');
 });
 
+const backgrounds = [
+  'bg1.jpg',
+  'bg2.jpg',
+  'bg3.jpg',
+  'bg4.jpg',
+  'bg5.jpg',
+  'bg7.jpg',
+  'bg8.jpg',
+  'bg9.jpg',
+  'bg10.jpg',
+  'bg14.jpg'
+];
+
+document.addEventListener('DOMContentLoaded', () => {
+  const selectedBG = backgrounds[Math.floor(Math.random() * backgrounds.length)];
+  document.body.style.backgroundImage = `url('Wallpaper/${selectedBG}')`;
+  document.body.style.backgroundSize = 'cover';
+  document.body.style.backgroundRepeat = 'no-repeat';
+  document.body.style.backgroundPosition = 'center';
+  document.body.style.backgroundAttachment = 'fixed';
+});
+
+
     
   
