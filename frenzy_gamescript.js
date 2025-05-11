@@ -282,7 +282,7 @@ if (mode === 'solo' && !solo) {
   let moveFrameCounter = 0;
   let softDropTimer = 0;
   let tapLeft = false;
-let tapRight = false;
+  let tapRight = false;
 
   
 
@@ -290,7 +290,7 @@ let tapRight = false;
   const dasFrames = localStorage.getItem("das") !== null ? Math.round(parseFloat(localStorage.getItem("das"))) : 10;
   const arrFrames = localStorage.getItem("arr") !== null ? Math.round(parseFloat(localStorage.getItem("arr"))) : 2;
   const sdfSpeed = localStorage.getItem("sdf") !== null ? parseFloat(localStorage.getItem("sdf")) : 6;
-  const sdfFrames = Math.round(60 / sdfSpeed); // 6X = 10F
+  const sdfFrames = Math.round(60 / (sdfSpeed * 2)); // 6X = 5F
 
   const SOFT_DROP_INTERVAL = 40; // kamu bisa tweak ini sesuai feel
   
@@ -973,6 +973,8 @@ if (clearedRows.length > 0) {
     if (isPaused || isGameOver) return;
     const deltaTime = time - lastTime;
     lastTime = time;
+
+    updateFrenzyTimer(deltaTime);
   
     // 🔵 Soft Drop (frame-based)
     if (isSoftDropping) {
@@ -1034,6 +1036,9 @@ if (clearedRows.length > 0) {
     updateScore();
   
     requestAnimationFrame(update);
+    timerStarted = true;
+    gameStartTime = Date.now(); 
+  
   }
 
   
