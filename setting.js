@@ -26,54 +26,56 @@ function updateVolumeValue(id) {
   el.style.setProperty('--range-progress', `${percent}%`);
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  // Main Theme Volume awal (5%)
-  const mainTheme = document.getElementById("main-theme");
-  if (mainTheme) {
-    mainTheme.volume = 0.05;
-    const musicSlider = document.getElementById("musicVolume");
-    if (musicSlider) {
-      musicSlider.value = 5;
-      updateVolumeValue("musicVolume"); // <-- Tambahkan ini
+const convertARR = (v) => Math.round(v); // simpan F
+const convertDAS = (v) => Math.round(v); // simpan F
+const convertSDF = (v) => {
+  const dropPerSecond = v; // v = X speed
+  const msPerDrop = 1000 / dropPerSecond;
+  const framePerDrop = Math.round(60 / dropPerSecond); // assuming 60fps
+
+  return {
+    x: v,
+    ms: Math.round(msPerDrop),
+    frame: framePerDrop
+  };
+};
+
+function updateHandling(id) {
+  const el = document.getElementById(id);
+  const label = document.getElementById(id + '-value');
+
+  const stored = localStorage.getItem(id);
+  let val = stored !== null ? parseFloat(stored) : defaultValue[id];
+
+  // ➜ BALIK NILAI untuk slider tampilan
+  if (id === "das") val = 21 - val; // 1 ↔ 20
+  if (id === "arr") val = 5.1 - val; // 0 ↔ 5
+
+  el.value = val;
+
+  const update = () => {
+    let rawVal = parseFloat(el.value);
+
+    // 🔁 BALIK LAGI saat nyimpan ke localStorage
+    if (id === "das") rawVal = 21 - rawVal;
+    if (id === "arr") rawVal = 5.1 - rawVal;
+
+    localStorage.setItem(id, rawVal);
+
+    if (id === "arr") {
+      label.textContent = `${Math.round(rawVal * 16.67)}MS (${Math.round(rawVal)}F)`;
+    } else if (id === "das") {
+      label.textContent = `${Math.round(rawVal * 16.67)}MS (${Math.round(rawVal)}F)`;
+    } else if (id === "sdf") {
+      const info = convertSDF(rawVal);
+      label.textContent = `${info.x}X`;
     }
-  }
+  };
 
-  // Button Sound Volume awal (50%)
-  const buttonSound = document.getElementById("buttonSound");
-  if (buttonSound) {
-    buttonSound.volume = 0.5;
-    const fxSlider = document.getElementById("fxVolume");
-    if (fxSlider) {
-      fxSlider.value = 50;
-      updateVolumeValue("fxVolume"); // <-- Tambahkan ini
-    }
-  }
-});
+  el.addEventListener("input", update);
+  update(); // initialize
+}
 
-  das.addEventListener("input", () => {
-    document.getElementById("das-value").textContent = das.value + "MS";
-  });
-  arr.addEventListener("input", () => {
-    document.getElementById("arr-value").textContent = arr.value + "MS";
-  });
-  sdf.addEventListener("input", () => {
-    document.getElementById("sdf-value").textContent = sdf.value + "MS";
-  });
-
-  function updateHandling(id) {
-    const el = document.getElementById(id);
-    const label = document.getElementById(id + '-value');
-    const update = () => {
-      const ms = parseInt(el.value, 10);
-      const frames = Math.round(ms / (1000 / 60)); // convert ms to frames (assuming 60fps)
-      label.textContent = `${ms}MS (${frames}F)`;
-    };
-    el.addEventListener("input", update);
-    update(); // initialize
-  }
-  
-  ["das", "arr", "sdf"].forEach(updateHandling);
-  
   const customControls = {};
 
   document.addEventListener('click', (e) => {
@@ -174,10 +176,6 @@ function loadPreset(preset) {
 }
 
 // Set default preset saat halaman pertama kali dibuka
-window.addEventListener('DOMContentLoaded', () => {
-  loadPreset('guideline');
-});
-
 const backgrounds = [
   'bg1.jpg',
   'bg2.jpg',
@@ -191,15 +189,61 @@ const backgrounds = [
   'bg14.jpg'
 ];
 
-document.addEventListener('DOMContentLoaded', () => {
+const defaultValue = {
+  das: 10,   // ≈167ms (10F)
+  arr: 2,    // ≈33ms (2F)
+  sdf: 6     // ➜ 6X 
+};
+
+
+
+document.addEventListener("DOMContentLoaded", () => {
+
+  for (const id in defaultValue) {
+    if (localStorage.getItem(id) === null) {
+      localStorage.setItem(id, defaultValue[id]);
+    }
+  }
+
+
+  // ✅ Load preset kontrol
+  loadPreset('guideline');
+
+  // ✅ Volume setup
+  const mainTheme = document.getElementById("main-theme");
+  if (mainTheme) {
+    mainTheme.volume = 0.05;
+    const musicSlider = document.getElementById("musicVolume");
+    if (musicSlider) {
+      musicSlider.value = 5;
+      updateVolumeValue("musicVolume");
+    }
+  }
+
+    // ✅ Slider update init
+    ["das", "arr", "sdf"].forEach(updateHandling);
+
+
+  const buttonSound = document.getElementById("buttonSound");
+  if (buttonSound) {
+    buttonSound.volume = 0.5;
+    const fxSlider = document.getElementById("fxVolume");
+    if (fxSlider) {
+      fxSlider.value = 50;
+      updateVolumeValue("fxVolume");
+    }
+  }
+
+  // ✅ Background randomizer
+  const backgrounds = [
+    'bg1.jpg', 'bg2.jpg', 'bg3.jpg', 'bg4.jpg', 'bg5.jpg',
+    'bg7.jpg', 'bg8.jpg', 'bg9.jpg', 'bg10.jpg', 'bg14.jpg'
+  ];
   const selectedBG = backgrounds[Math.floor(Math.random() * backgrounds.length)];
   document.body.style.backgroundImage = `url('Wallpaper/${selectedBG}')`;
   document.body.style.backgroundSize = 'cover';
   document.body.style.backgroundRepeat = 'no-repeat';
   document.body.style.backgroundPosition = 'center';
-  document.body.style.backgroundAttachment = 'fixed';
+  document.body.style.backgroundAttachment = 'fixed';  
 });
-
-
-    
   
