@@ -36,12 +36,60 @@ const dasFrames = localStorage.getItem("das") !== null ? Math.round(parseFloat(l
 const arrFrames = localStorage.getItem("arr") !== null ? Math.round(parseFloat(localStorage.getItem("arr"))) : 2;
 const sdfSpeed = localStorage.getItem("sdf") !== null ? parseFloat(localStorage.getItem("sdf")) : 6;
 const sdfFrames = Math.round(60 / (sdfSpeed * 2)); // 6X = 5F
-
-
-
 const SOFT_DROP_INTERVAL = 40; // kamu bisa tweak ini sesuai feel
 
+const defaultControls = {
+  left: "ArrowLeft|a",
+  right: "ArrowRight|d",
+  softdrop: "ArrowUp|w",
+  harddrop: " ",    
+  cw: "s|ArrowDown",
+  ccw: "z",
+  rotate180: "c",
+  hold: "Shift|h"
+};
 
+
+let activeControlSlot = parseInt(localStorage.getItem("activeControlSlot")) || 1;
+let activeKeyBindings = {};
+
+function applyActiveControlBindings() {
+  const saved = JSON.parse(localStorage.getItem(`customControlsSlot${activeControlSlot}`)) || defaultControls;
+
+  activeKeyBindings = {};
+
+  for (const [action, keyString] of Object.entries(saved)) {
+    if (!keyString) continue;
+    keyString.split("|").forEach(k => {
+      if (k.trim() !== "") {
+        activeKeyBindings[k.toLowerCase()] = action;
+      }
+    });
+  }
+}
+
+function saveCustomControls() {
+  for (let slot = 1; slot <= 2; slot++) {
+    const updated = {};
+    document.querySelectorAll(`.custom-key[data-slot="${slot}"]`).forEach(div => {
+      const action = div.dataset.action;
+      const key = div.textContent;
+      if (key && key !== "[NOT SET]" && key !== "[PRESS KEY]") {
+        updated[action] = key;
+      }
+    });
+    localStorage.setItem(`customControlsSlot${slot}`, JSON.stringify(updated));
+  }
+
+  alert("Custom controls saved! ✅");
+  applyActiveControlBindings(); // Re-apply if slot aktif sedang diubah
+}
+
+function switchControlSlot(slot) {
+  activeControlSlot = slot;
+  localStorage.setItem("activeControlSlot", slot);
+  applyActiveControlBindings();
+}
 
 const wallkickOffsets = [
   { x: 0, y: 0 },
@@ -115,6 +163,11 @@ window.coolNicknames = [
 ];
 
 window.onload = () => {
+  applyActiveControlBindings();
+  loadControlsFromSlot(1);
+  loadControlsFromSlot(2);
+
+
   const mode = localStorage.getItem('selectedGameMode');
 const solo = localStorage.getItem('selectedSoloMode');
 if (mode === 'solo' && !solo) {
@@ -251,6 +304,22 @@ function formatTime(ms) {
   const seconds = totalSeconds % 60;
   return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }
+
+function loadControlsFromSlot(slot) {
+  const saved = JSON.parse(localStorage.getItem(`customControlsSlot${slot}`)) || defaultControls;
+
+  document.querySelectorAll(`.custom-key[data-slot="${slot}"]`).forEach(el => {
+    const action = el.dataset.action;
+    el.textContent = saved[action] || "[NOT SET]";
+  });
+}
+
+function getDisplayKeys(slot, action) {
+  const saved = JSON.parse(localStorage.getItem(`customControlsSlot${slot}`)) || defaultControls;
+  return saved[action] || "[NOT SET]";
+}
+
+
 
 function updateTimer(deltaTime) {
   if (isPaused || isGameOver || !timerStarted) return;
@@ -521,7 +590,6 @@ function drawDebris(ctx) {
       player.pos.y++;
       
       if (!lockPending) {
-        console.log('[LOCK] Piece landed. Starting lock delay...');
         lockPending = true;
         landedY = player.pos.y; // simpan posisi saat landed
         startLockDelay();
@@ -706,11 +774,9 @@ function playerRotate180() {
     
       if (!stillTouching) {
         lockPending = false;
-        console.log('[LOCK CANCELLED] No longer touching');
         return;
       }
     
-      console.log('[LOCK COMMIT] Piece locked');
       merge(arena, player);
       hold.hasHeld = false;
       arenaSweep();
@@ -723,7 +789,6 @@ function playerRotate180() {
       
 
   function merge(arena, player) {
-    console.log('[MERGE] Piece merged at Y:', player.pos.y);
 
     player.matrix.forEach((row, y) => {
       row.forEach((value, x) => {
@@ -883,9 +948,6 @@ if (clearedRows.length > 0) {
       congratsText.textContent = phrase;
   
       player.lines += linesCleared;
-
-      console.log("Lines:", player.lines, "HasCompleted:", hasCompleted40Lines);
-
   
       if (player.lines >= 40) {
         hasCompleted40Lines = true;
@@ -1020,77 +1082,93 @@ if (clearedRows.length > 0) {
     requestAnimationFrame(update);
   }
       
-  document.addEventListener("keydown", (e) => {
-    const key = e.key.toLowerCase();
+  document.addEventListener('keydown', (e) => {
+    const key = e.key.toLowerCase(); // langsung lowercase di awal
+    const action = activeKeyBindings[key];
   
-    if ((key === "arrowleft" || key === "a")) {
-      if (!e.repeat) {
-        playerMove(-1);      // Tap = gerak 1x
-        tapLeft = true;      // Tandai sebagai tap
-      }
-      moveHoldDir = -1;       // Hold aktif
-      moveFrameCounter = dasFrames;
-      initialMovePending = true;
+    const keysToPrevent = [" ", "arrowup", "arrowdown", "arrowleft", "arrowright"];
+    if (keysToPrevent.includes(key)) {
+      e.preventDefault();
     }
     
-    else if ((key === "arrowright" || key === "d")) {
-      if (!e.repeat) {
-        playerMove(1);
-        tapRight = true;
+    if (!isPaused || key === 'p') {
+      switch (action) {
+        case 'left':
+          if (!e.repeat) {
+            playerMove(-1);
+            tapLeft = true;
+          }
+          moveHoldDir = -1;
+          moveFrameCounter = dasFrames;
+          initialMovePending = true;
+          break;
+  
+        case 'right':
+          if (!e.repeat) {
+            playerMove(1);
+            tapRight = true;
+          }
+          moveHoldDir = 1;
+          moveFrameCounter = dasFrames;
+          initialMovePending = true;
+          break;
+  
+        case 'softdrop':
+          if (!isSoftDropping) isSoftDropping = true;
+          break;
+  
+        case 'harddrop':
+          playerHardDrop();
+          rotatedLast = false;
+          break;
+  
+        case 'cw':
+          playerRotate();
+          break;
+  
+        case 'ccw':
+          playerRotate(); playerRotate(); playerRotate();
+          break;
+  
+        case 'rotate180':
+          playerRotate(); playerRotate();
+          break;
+  
+        case 'hold':
+          holdPiece();
+          break;
       }
-      moveHoldDir = 1;
-      moveFrameCounter = dasFrames;
-      initialMovePending = true;
-    }
-      
-    if ((key === "arrowup" || key === "w") && !isSoftDropping) {
-      isSoftDropping = true;
-      softDropTimer = 0;
-    }
-
-     else if (key === "arrowdown" || key === "s") {
-      playerRotateCW();
   
-    } else if (key === " ") {
-      e.preventDefault();
-      playerHardDrop();
-      rotatedLast = false;
-  
-    } else if (key === "z") {
-      playerRotateCCW();
-  
-    } else if (key === "c") {
-      playerRotate180();
-  
-    } else if (key === "shift" || key === "h") {
-      holdPiece();
-  
-    } else if (key === "o") {
-      document.getElementById("completionOverlay").style.display = "flex";
+      // 🛠️ Fallback: Space bar tidak terbaca oleh activeKeyBindings
+      if ((e.key === " " || e.code === "Space") && !action) {
+        e.preventDefault();
+        playerHardDrop();
+        rotatedLast = false;
+      }
     }
   
     totalKeysPressed++;
   });
-    
+            
   document.addEventListener("keyup", (e) => {
     const key = e.key.toLowerCase();
-    if (key === "arrowleft" || key === "a") {
+    const action = activeKeyBindings[key];
+  
+    if (action === "left") {
       moveHoldDir = 0;
       initialMovePending = false;
       tapLeft = false;
-    }
-    else if (key === "arrowright" || key === "d") {
+  
+    } else if (action === "right") {
       moveHoldDir = 0;
       initialMovePending = false;
       tapRight = false;
-    }
-     else if (key === "arrowup" || key === "w") {
+  
+    } else if (action === "softdrop") {
       isSoftDropping = false;
     }
   });
-    
-
-
+      
   pauseButton.onclick = () => {
     isPaused = !isPaused;
     pauseButton.textContent = isPaused ? 'Resume' : 'Pause';
@@ -1157,11 +1235,8 @@ if (clearedRows.length > 0) {
       sounds.mainTheme.play();
     };
   }
-    
-  
 
   window.startCountdown = () => {
-    console.log("Countdown starting...");
   
     const selectedMode = localStorage.getItem('selectedGameMode');
     const selectedSoloMode = localStorage.getItem('selectedSoloMode');
@@ -1198,7 +1273,7 @@ if (clearedRows.length > 0) {
       }
     }, 1000);
   };
-  
+    
   // ✅ Final call (ONLY this)
   startCountdown(); // jangan ada baris lain setelah ini (seperti update() atau playerReset())
   
@@ -1206,6 +1281,44 @@ if (clearedRows.length > 0) {
     matrix: null,
     hasHeld: false
   };
+
+  let pendingBind = null;
+
+document.querySelectorAll(".custom-key").forEach(el => {
+  el.addEventListener("click", () => {
+    if (pendingBind) {
+      const oldAction = pendingBind.dataset.action;
+      const oldSlot = pendingBind.dataset.slot;
+      pendingBind.textContent = getDisplayKeys(oldSlot, oldAction);
+    }
+
+    pendingBind = el;
+    el.textContent = "[PRESS KEY]";
+  });
+});
+
+window.addEventListener("keydown", (e) => {
+  
+  if (!pendingBind) return;
+
+  const slot = pendingBind.dataset.slot;
+  const action = pendingBind.dataset.action;
+  const key = e.key.toLowerCase();
+
+  let saved = JSON.parse(localStorage.getItem(`customControlsSlot${slot}`)) || { ...defaultControls };
+
+  const existing = saved[action] ? saved[action].split("|") : [];
+  if (!existing.includes(key)) {
+    existing.push(key);
+  }
+
+  saved[action] = existing.join("|");
+  localStorage.setItem(`customControlsSlot${slot}`, JSON.stringify(saved));
+
+  pendingBind.textContent = saved[action];
+  pendingBind = null;
+});
+
   
   function holdPiece() {
     holdCount++;
@@ -1277,11 +1390,9 @@ if (clearedRows.length > 0) {
       fpsCounter.fps = Math.round((fpsCounter.frameCount * 1000) / diff);
       fpsCounter.frameCount = 0;
       fpsCounter.lastTime = time;
-      console.log(`[FPS] ${fpsCounter.fps}`);
     }
     requestAnimationFrame(monitorFPS);
   }
   
   monitorFPS();
-  
 };

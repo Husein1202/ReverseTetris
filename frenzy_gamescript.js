@@ -60,6 +60,36 @@ const wallkick180Offsets = [
   { x: 2, y: 0 }
 ];
 
+const defaultControls = {
+  left: "ArrowLeft|a",
+  right: "ArrowRight|d",
+  softdrop: "ArrowUp|w",
+  harddrop: "Space",    
+  cw: "s|ArrowDown",
+  ccw: "z",
+  rotate180: "c",
+  hold: "Shift|h"
+};
+
+let activeControlSlot = parseInt(localStorage.getItem("activeControlSlot")) || 1;
+let activeKeyBindings = {};
+
+function applyActiveControlBindings() {
+  const saved = JSON.parse(localStorage.getItem(`customControlsSlot${activeControlSlot}`)) || defaultControls;
+
+  activeKeyBindings = {};
+
+  for (const [action, keyString] of Object.entries(saved)) {
+    if (!keyString) continue;
+    keyString.split("|").forEach(k => {
+      if (k.trim() !== "") {
+        activeKeyBindings[k.toLowerCase()] = action;
+      }
+    });
+  }
+}
+
+
 
 window.coolNicknames = [
   "TetehTetris", "BlokGagal", "SalahNgetik", "SiLemot", "CieNoob",
@@ -69,6 +99,8 @@ window.coolNicknames = [
 ];
 
 window.onload = () => {
+  applyActiveControlBindings();
+
   const mode = localStorage.getItem('selectedGameMode');
 const solo = localStorage.getItem('selectedSoloMode');
 if (mode === 'solo' && !solo) {
@@ -975,6 +1007,7 @@ if (clearedRows.length > 0) {
     lastTime = time;
 
     updateFrenzyTimer(deltaTime);
+
   
     // 🔵 Soft Drop (frame-based)
     if (isSoftDropping) {
@@ -1041,72 +1074,126 @@ if (clearedRows.length > 0) {
   
   }
 
+  let pendingBind = null;
+
+  document.querySelectorAll(".custom-key").forEach(el => {
+    el.addEventListener("click", () => {
+      if (pendingBind) {
+        const oldAction = pendingBind.dataset.action;
+        const oldSlot = pendingBind.dataset.slot;
+        pendingBind.textContent = getDisplayKeys(oldSlot, oldAction);
+      }
   
-  document.addEventListener("keydown", (e) => {
+      pendingBind = el;
+      el.textContent = "[PRESS KEY]";
+    });
+  });
+  
+  window.addEventListener("keydown", (e) => {
+    
+    if (!pendingBind) return;
+  
+    const slot = pendingBind.dataset.slot;
+    const action = pendingBind.dataset.action;
     const key = e.key.toLowerCase();
   
-    if ((key === "arrowleft" || key === "a")) {
-      if (!e.repeat) {
-        playerMove(-1);      // Tap = gerak 1x
-        tapLeft = true;      // Tandai sebagai tap
-      }
-      moveHoldDir = -1;       // Hold aktif
-      moveFrameCounter = dasFrames;
-      initialMovePending = true;
+    let saved = JSON.parse(localStorage.getItem(`customControlsSlot${slot}`)) || { ...defaultControls };
+  
+    const existing = saved[action] ? saved[action].split("|") : [];
+    if (!existing.includes(key)) {
+      existing.push(key);
+    }
+  
+    saved[action] = existing.join("|");
+    localStorage.setItem(`customControlsSlot${slot}`, JSON.stringify(saved));
+  
+    pendingBind.textContent = saved[action];
+    pendingBind = null;
+  });
+  
+  document.addEventListener('keydown', (e) => {
+    const key = e.key.toLowerCase(); // langsung lowercase di awal
+    const action = activeKeyBindings[key];
+  
+    const keysToPrevent = [" ", "arrowup", "arrowdown", "arrowleft", "arrowright"];
+    if (keysToPrevent.includes(key)) {
+      e.preventDefault();
     }
     
-    else if ((key === "arrowright" || key === "d")) {
-      if (!e.repeat) {
-        playerMove(1);
-        tapRight = true;
+    if (!isPaused || key === 'p') {
+      switch (action) {
+        case 'left':
+          if (!e.repeat) {
+            playerMove(-1);
+            tapLeft = true;
+          }
+          moveHoldDir = -1;
+          moveFrameCounter = dasFrames;
+          initialMovePending = true;
+          break;
+  
+        case 'right':
+          if (!e.repeat) {
+            playerMove(1);
+            tapRight = true;
+          }
+          moveHoldDir = 1;
+          moveFrameCounter = dasFrames;
+          initialMovePending = true;
+          break;
+  
+        case 'softdrop':
+          if (!isSoftDropping) isSoftDropping = true;
+          break;
+  
+        case 'harddrop':
+          playerHardDrop();
+          rotatedLast = false;
+          break;
+  
+        case 'cw':
+          playerRotate();
+          break;
+  
+        case 'ccw':
+          playerRotate(); playerRotate(); playerRotate();
+          break;
+  
+        case 'rotate180':
+          playerRotate(); playerRotate();
+          break;
+  
+        case 'hold':
+          holdPiece();
+          break;
       }
-      moveHoldDir = 1;
-      moveFrameCounter = dasFrames;
-      initialMovePending = true;
-    }
-      
-    if ((key === "arrowup" || key === "w") && !isSoftDropping) {
-      isSoftDropping = true;
-      softDropTimer = 0;
-    }
-
-     else if (key === "arrowdown" || key === "s") {
-      playerRotateCW();
   
-    } else if (key === " ") {
-      e.preventDefault();
-      playerHardDrop();
-      rotatedLast = false;
-  
-    } else if (key === "z") {
-      playerRotateCCW();
-  
-    } else if (key === "c") {
-      playerRotate180();
-  
-    } else if (key === "shift" || key === "h") {
-      holdPiece();
-  
-    } else if (key === "o") {
-      document.getElementById("completionOverlay").style.display = "flex";
+      // 🛠️ Fallback: Space bar tidak terbaca oleh activeKeyBindings
+      if ((e.key === " " || e.code === "Space") && !action) {
+        e.preventDefault();
+        playerHardDrop();
+        rotatedLast = false;
+      }
     }
   
     totalKeysPressed++;
   });
-    
+            
   document.addEventListener("keyup", (e) => {
     const key = e.key.toLowerCase();
-    if (key === "arrowleft" || key === "a") {
+    const action = activeKeyBindings[key];
+  
+    if (action === "left") {
       moveHoldDir = 0;
       initialMovePending = false;
       tapLeft = false;
-    }
-    else if (key === "arrowright" || key === "d") {
+  
+    } else if (action === "right") {
       moveHoldDir = 0;
       initialMovePending = false;
       tapRight = false;
-    }
-     else if (key === "arrowup" || key === "w") {
+  
+    } else if (action === "softdrop") {
       isSoftDropping = false;
     }
   });

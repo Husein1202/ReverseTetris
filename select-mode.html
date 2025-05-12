@@ -149,9 +149,13 @@
   </div>
 
   <!-- Custom Controls (disembunyikan di awal) -->
-  <table class="controls-table" id="custom-controls" style="display: none; width: 100%;">
-    <tbody>
-      <tr>
+  <div id="custom-controls-wrapper" style="display: none;">
+    <table class="controls-table" style="width: 100%;">
+      <div class="btn-custom">
+        <button class="btn-cntrl" id="resetCustom">Reset</button>
+      </div>
+      <tbody>
+        <tr>
         <td>MOVE LEFT</td>
         <td><div class="custom-key" data-hit="click" data-action="left" data-slot="1">[NOT SET]</div></td>
         <td><div class="custom-key" data-hit="click" data-action="left" data-slot="2">[NOT SET]</div></td>
@@ -193,15 +197,16 @@
       </tr>
     </tbody>
   </table>
-  
-            
+</div>
 </div>
 
 <!-- HANDLING -->
 <div class="setting-section">
-  <div class="setting-header">HANDLING</div>
-
-  <div class="setting-slider">
+  <div class="setting-header-wrapper">
+    <div class="setting-header">HANDLING</div>
+    <button id="resetHandling" class="btn-reset">Reset Handling</button>
+  </div>
+    <div class="setting-slider">
     <div class="slider-labels">
       <span class="slider-title">DAS</span>
     </div>
@@ -210,8 +215,8 @@
       <span class="slider-value" id="das-value"></span>
     </div>
     <div class="slider-labels">
-      <span class="slider-side">LOW DELAY </span>
-      <span class="slider-side">HIGH DELAY</span>
+      <span class="slider-side">SLOW</span>
+      <span class="slider-side">FAST</span>
     </div>
   </div>
   

@@ -1372,6 +1372,46 @@ margin-top: -35px;
   box-sizing: border-box; /* penting agar padding dihitung dengan benar */
 }
 
+.btn-reset {
+  margin-top: 6px;
+  padding: 8px 15px;
+  background-color: #181c27;
+  color: #9fb4ff;
+  font-family: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+.btn-custom {
+  margin-top: 10px;
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    justify-content: right;
+    padding-bottom: 7px;
+}
+.btn-cntrl {
+  margin-top: 6px;
+  padding: 8px 50px;
+  background-color: #181c27;
+  color: #9fb4ff;
+  font-family: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.btn-reset:hover {
+  background-color: #282e3f;
+  color: #ffffff
+}
+
+.btn-cntrl:hover {
+  background-color: #282e3f;
+  color: #ffffff
+}
 
 .setting-section {
   background-color: #181c27;
@@ -1388,11 +1428,17 @@ margin-top: -35px;
   margin-bottom: 10px;
 }
 
+.setting-header-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
 .setting-header {
   font-size: 20px;
   font-weight: bold;
   color: #9fb4ff;
-  margin-bottom: 12px;
 }
 
 .preset-buttons {

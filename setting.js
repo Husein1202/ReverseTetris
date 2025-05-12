@@ -95,27 +95,66 @@ function updateHandling(id) {
 
   function assignKey(element, action, slot) {
     element.innerText = '[PRESS A KEY]';
-
+  
     function keyHandler(e) {
       e.preventDefault();
-      const key = e.key.toUpperCase();
-
+      const key = e.key;
+  
       if (!customControls[action]) {
         customControls[action] = {};
       }
-
-      customControls[action][slot] = key;
-      element.innerText = key;
-
+  
+      if (key === 'Backspace') {
+        // ⛔ Hapus key dari slot tsb
+        customControls[action][slot] = "";
+        element.innerText = "[NOT SET]";
+      } else {
+        // ✅ Tambah atau ubah key baru
+        customControls[action][slot] = key.toUpperCase();
+        element.innerText = key.toUpperCase();
+      }
+  
+      saveCustomControls();
       document.removeEventListener('keydown', keyHandler);
     }
-
+  
     document.addEventListener('keydown', keyHandler);
   }
+    
+  // ✅ TARUH DI SINI:
+  function saveCustomControls() {
+    const merged = {};
+  
+    for (const action in customControls) {
+      const key1 = customControls[action][1] || "";
+      const key2 = customControls[action][2] || "";
+      const keys = [key1, key2].filter(k => k && k !== "[NOT SET]").join("|");
+      merged[action] = keys;
+    }
+  
+    // ✅ Simpan ke slot yang dipakai gameplay
+    localStorage.setItem("customControlsSlot1", JSON.stringify(merged));
+    localStorage.setItem("customControlsSlot2", JSON.stringify(merged)); // optional
+    }
 
+  function loadCustomControls() {
+    const stored = localStorage.getItem("customControlsSlot1");
+    if (stored) {
+      const flat = JSON.parse(stored);
+      for (const action in flat) {
+        const keys = flat[action].split("|");
+        customControls[action] = {
+          1: keys[0] || "",
+          2: keys[1] || ""
+        };
+      }
+    }
+  }
+  
+    
 function loadPreset(preset) {
-  const defaultTable = document.getElementById("default-controls");
-  const customTable = document.getElementById("custom-controls");
+const defaultTable = document.getElementById("default-controls");
+const customWrapper = document.getElementById("custom-controls-wrapper");
 
   const guidelinePreset = {
     left: ["ArrowLeft", "A"],
@@ -131,17 +170,26 @@ function loadPreset(preset) {
   // === Preset Logic ===
   if (preset === 'custom') {
     defaultTable.style.display = "none";
-    customTable.style.display = "table";
-
-    document.querySelectorAll('#custom-controls .custom-key').forEach(el => {
-      el.innerText = '[NOT SET]';
-    });
-
-    for (const key in customControls) delete customControls[key];
-  } 
+    customWrapper.style.display = "block";
+  
+    loadCustomControls(); // 🧠 Ambil dari localStorage
+  
+    for (const action in customControls) {
+      const key1 = customControls[action][1] || '[NOT SET]';
+      const key2 = customControls[action][2] || '[NOT SET]';
+  
+      const el1 = document.querySelector(`.custom-key[data-action="${action}"][data-slot="1"]`);
+      const el2 = document.querySelector(`.custom-key[data-action="${action}"][data-slot="2"]`);
+  
+      if (el1) el1.innerText = key1;
+      if (el2) el2.innerText = key2;
+    }
+  }
+    
   else if (preset === 'guideline') {
-    defaultTable.style.display = "table";
-    customTable.style.display = "none";
+  defaultTable.style.display = "block";
+  customWrapper.style.display = "none";
+
 
     document.getElementById("key-left").innerText = "Arrow Left, A";
     document.getElementById("key-right").innerText = "Arrow Right, D";
@@ -195,9 +243,41 @@ const defaultValue = {
   sdf: 6     // ➜ 6X 
 };
 
+// Pindahkan ke global scope:
+function resetCustomControls() {
+  const defaultBindings = {
+    left: "ArrowLeft|A",
+    right: "ArrowRight|D",
+    softdrop: "ArrowUp|W",
+    harddrop: "Space|",
+    ccw: "Z|",
+    cw: "ArrowDown|S",
+    rotate180: "C|",
+    hold: "Shift|H"
+  };
+
+  // Simpan ke dua slot (utamanya slot 1 untuk gameplay)
+  localStorage.setItem("customControlsSlot1", JSON.stringify(defaultBindings));
+  localStorage.setItem("customControlsSlot2", JSON.stringify(defaultBindings));
+
+  // Update tampilan UI custom control (slot 1 dan 2)
+  for (const action in defaultBindings) {
+    const keys = defaultBindings[action].split("|");
+    const el1 = document.querySelector(`.custom-key[data-action="${action}"][data-slot="1"]`);
+    const el2 = document.querySelector(`.custom-key[data-action="${action}"][data-slot="2"]`);
+    if (el1) el1.innerText = keys[0] || "[NOT SET]";
+    if (el2) el2.innerText = keys[1] || "[NOT SET]";
+  }
+
+  // Update handling & audio UI
+  ["das", "arr", "sdf"].forEach(updateHandling);
+  updateVolumeValue("musicVolume");
+  updateVolumeValue("fxVolume");
+}
 
 
 document.addEventListener("DOMContentLoaded", () => {
+  loadCustomControls();
 
   for (const id in defaultValue) {
     if (localStorage.getItem(id) === null) {
@@ -247,3 +327,18 @@ document.addEventListener("DOMContentLoaded", () => {
   document.body.style.backgroundAttachment = 'fixed';  
 });
   
+document.getElementById("resetHandling").addEventListener("click", () => {
+  const defaultValues = {
+    das: 10,  // in frames
+    arr: 2,   // in frames
+    sdf: 6    // 6X
+  };
+
+  for (const key in defaultValues) {
+    localStorage.setItem(key, defaultValues[key]);
+  }
+
+  // 🔁 Panggil ulang fungsi render supaya value, label, dan slider visual sinkron
+  ["das", "arr", "sdf"].forEach(updateHandling);
+});
+document.getElementById("resetCustom").addEventListener("click", resetCustomControls);
