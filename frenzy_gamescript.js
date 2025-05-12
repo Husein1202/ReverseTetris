@@ -146,11 +146,9 @@ if (mode === 'solo' && !solo) {
   const label = names[Math.min(linesCleared - 1, names.length - 1)];
   comboTitle.textContent = label;
   comboTitle.style.opacity = 1;
-  comboTitle.classList.add("shake");
 
   setTimeout(() => {
     comboTitle.style.opacity = 0;
-    comboTitle.classList.remove("shake");
   }, 1200);
 }
 
@@ -599,8 +597,6 @@ function drawDebris(ctx) {
     sounds.harddrop.currentTime = 0;
     sounds.harddrop.play();
   
-    canvas.classList.add('shake');
-    setTimeout(() => canvas.classList.remove('shake'), 300);
   }
   
   function playerDrop() {
@@ -913,22 +909,10 @@ if (clearedRows.length > 0) {
   
     if (linesCleared > 0) {
       triggerFlash(); 
-      // Basic T-Spin check
-      const isTPiece = player.matrix.length === 3 && player.matrix[1][1] === 1;
-      if (linesCleared > 0 && isTPiece && rotatedLast) {
-        const cx = player.pos.x + 1;
-        const cy = player.pos.y + 1;
-        let corners = 0;
-        if (arena[cy - 1]?.[cx - 1]) corners++;
-        if (arena[cy - 1]?.[cx + 1]) corners++;
-        if (arena[cy + 1]?.[cx - 1]) corners++;
-        if (arena[cy + 1]?.[cx + 1]) corners++;
-        if (corners >= 3) {
-          player.score += 400 * player.level;
-          congratsText.textContent = "T-SPIN!";
-        }
-      }
-      rotatedLast = false;
+      const tspinType = detectTSpinType(player, arena, linesCleared, rotatedLast);
+      if (tspinType) {
+        congratsText.textContent = tspinType;
+      }      rotatedLast = false;
   
       comboCount += linesCleared;
       if (comboCount > highestCombo) highestCombo = comboCount;
@@ -942,11 +926,9 @@ if (clearedRows.length > 0) {
   
       comboDisplay.textContent = `Combo x${comboCount}!`;
       comboDisplay.style.opacity = 1;
-      comboDisplay.classList.add('shake');
       clearTimeout(comboDisplayTimeout);
       comboDisplayTimeout = setTimeout(() => {
         comboDisplay.style.opacity = 0;
-        comboDisplay.classList.remove('shake');
       }, 1000);
   
       sounds.lineclear.currentTime = 0;
@@ -986,8 +968,6 @@ if (clearedRows.length > 0) {
       }
     }
   }
-  
-
   function updateScore() {
     const scoreElement = document.getElementById('score');
     const linesElement = document.getElementById('lines');
@@ -1205,13 +1185,14 @@ if (clearedRows.length > 0) {
     document.getElementById('pausedOverlay').innerText = isPaused ? 'The game is paused' : '';
   
     if (isPaused) {
-      sounds.bgMusic.pause(); // ⏸️ Pause lagu saat pause
+      const bgm = window.getCurrentBGM?.();
+      if (bgm) bgm.pause(); // ⏸️ pause lagu saat game pause
     } else {
       lastTime = performance.now();
-      sounds.bgMusic.play(); // ▶️ Lanjutkan lagu saat resume
+      const bgm = window.getCurrentBGM?.();
+      if (bgm) bgm.play();  // ▶️ lanjut lagu saat resume
       update();
-    }
-  };
+    }}
 
   // ✅ JOIN BUTTON ACTION
   if (joinButton) {
@@ -1256,18 +1237,19 @@ if (clearedRows.length > 0) {
       } else {
         clearInterval(countdownInterval);
         document.getElementById('countdownOverlay').style.display = 'none';
-        sounds.mainTheme.pause();
-        sounds.bgMusic.volume = 0.1;
-        sounds.bgMusic.currentTime = 0;
-        sounds.bgMusic.play();
-  
         // ✅ Game dan timer benar-benar dimulai di sini
         playerReset();
         lastTime = performance.now();
         gameStartTime = Date.now(); 
         timerStarted = true;
+
+        // 🔊 Mulai musik BGM random
+        if (window.playRandomBGM) {
+          window.playRandomBGM();
+        }
+  
         update();
-      }
+        }
     }, 1000);
   };
   

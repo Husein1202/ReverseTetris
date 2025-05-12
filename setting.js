@@ -237,6 +237,63 @@ const backgrounds = [
   'bg14.jpg'
 ];
 
+// 🎶 BGM List dari folder /Sound/
+const bgmList = [
+  "Sound/fun-world.mp3",
+  "Sound/kijou-no-kuuron-odoru-sai.mp3",
+  "Sound/kokokara-hajimaru-fantasia.mp3",
+  "Sound/kouya-no-sakini.mp3",
+  "Sound/mainMusic.mp3",
+  "Sound/nodoka-na-lunch.mp3",
+  "Sound/ookina-kirikabu-no-ue-de.mp3",
+  "Sound/opening-act.mp3",
+  "Sound/osanpo.mp3",
+  "Sound/peace-message.mp3",
+  "Sound/please-push-on-the-start-button.mp3",
+  "Sound/R-side-kimo-wo-tamesu.mp3",
+  "Sound/samenai-yume.mp3",
+  "Sound/shiroi-hato.mp3",
+  "Sound/shiun.mp3",
+  "Sound/tropical-seasons.mp3",
+  "Sound/uchuu-5239.mp3",
+  "Sound/venture.mp3",
+  "Sound/world-prayers.mp3",
+  "Sound/yakousei-no-utage.mp3",
+  "Sound/yatai-de-ippai.mp3",
+  "Sound/you-are-the-hero-of-an-adventure-story.mp3",
+];
+
+let currentBGM = null;
+
+function getRandomBGM(excludePath = null) {
+  let available = bgmList.filter(path => !excludePath || !excludePath.includes(path));
+  if (available.length === 0) available = bgmList;
+  const index = Math.floor(Math.random() * available.length);
+  return available[index];
+}
+
+function playRandomBGM() {
+  const nextTrack = getRandomBGM(currentBGM?.src);
+  const audio = new Audio(nextTrack);
+  audio.loop = false;
+
+  // Ambil volume dari localStorage musicVolume
+  const savedVolume = parseFloat(localStorage.getItem("musicVolume")) || 5;
+  audio.volume = savedVolume / 100;
+
+  audio.addEventListener("ended", () => {
+    currentBGM = playRandomBGM(); // Auto play next
+  });
+
+  audio.play();
+  currentBGM = audio;
+  return audio;
+}
+
+window.playRandomBGM = playRandomBGM;
+window.getCurrentBGM = () => currentBGM;
+
+
 const defaultValue = {
   das: 10,   // ≈167ms (10F)
   arr: 2,    // ≈33ms (2F)
@@ -290,26 +347,35 @@ document.addEventListener("DOMContentLoaded", () => {
   loadPreset('guideline');
 
   // ✅ Volume setup
-  const mainTheme = document.getElementById("main-theme");
-  if (mainTheme) {
-    mainTheme.volume = 0.05;
-    const musicSlider = document.getElementById("musicVolume");
-    if (musicSlider) {
-      musicSlider.value = 5;
-      updateVolumeValue("musicVolume");
+  const musicSlider = document.getElementById("musicVolume");
+  if (musicSlider) {
+    const savedVolume = parseFloat(localStorage.getItem("musicVolume")) || 5;
+    musicSlider.value = savedVolume;
+    updateVolumeValue("musicVolume");
+  
+    const mainTheme = document.getElementById("main-theme");
+    if (mainTheme) {
+      mainTheme.volume = savedVolume / 100;
     }
+  
+    musicSlider.addEventListener("input", () => {
+      const newVolume = parseFloat(musicSlider.value);
+      localStorage.setItem("musicVolume", newVolume);
+      updateVolumeValue("musicVolume");
+      if (mainTheme) mainTheme.volume = newVolume / 100;
+      if (currentBGM) currentBGM.volume = newVolume / 100;
+    });
   }
-
-    // ✅ Slider update init
+      // ✅ Slider update init
     ["das", "arr", "sdf"].forEach(updateHandling);
 
 
   const buttonSound = document.getElementById("buttonSound");
   if (buttonSound) {
-    buttonSound.volume = 0.5;
+    buttonSound.volume = 0.15;
     const fxSlider = document.getElementById("fxVolume");
     if (fxSlider) {
-      fxSlider.value = 50;
+      fxSlider.value = 15;
       updateVolumeValue("fxVolume");
     }
   }
@@ -327,6 +393,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.body.style.backgroundAttachment = 'fixed';  
 });
   
+
 document.getElementById("resetHandling").addEventListener("click", () => {
   const defaultValues = {
     das: 10,  // in frames
