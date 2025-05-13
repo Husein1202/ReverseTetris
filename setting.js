@@ -1,27 +1,39 @@
 function updateVolumeValue(id) {
   const el = document.getElementById(id);
-  if (!el) return; // amanin kalau element gak ketemu
+  if (!el) return;
 
   const volume = parseInt(el.value, 10);
 
-  // Target elemen audio berdasarkan slider ID
   const audioMap = {
     musicVolume: "main-theme",
     fxVolume: "buttonSound"
   };
+
   const audioId = audioMap[id];
   const audio = document.getElementById(audioId);
   if (audio) {
     audio.volume = volume / 100;
   }
 
-  // Update label persen
-  const label = document.getElementById(id + "Value");
-  if (label) {
-    label.textContent = `${volume}%`;
+  // ⬇️ Tambahkan ini agar semua efek volume ikut fxVolume
+  if (id === "fxVolume") {
+    const sfxElements = [
+      "rotate", "move", "harddrop", "softdrop", "lineclear", "hold", "gameover",
+      "countdown1", "countdown2", "countdown3",
+      "combo1", "combo2", "combo3", "combo4", "combo5", "combo6", "combo7", "combo8",
+      "combo9", "combo10", "combo11", "combo12", "combo13", "combo14", "combo15", "combo16",
+      "comboBreak"
+    ];
+    for (const id of sfxElements) {
+      const el = document.getElementById(id);
+      if (el) el.volume = volume / 100;
+    }
   }
 
-  // Update CSS untuk fill slider
+  // Label persen
+  const label = document.getElementById(id + "Value");
+  if (label) label.textContent = `${volume}%`;
+
   const percent = ((volume - el.min) / (el.max - el.min)) * 100;
   el.style.setProperty('--range-progress', `${percent}%`);
 }
@@ -263,6 +275,18 @@ const bgmList = [
   "Sound/you-are-the-hero-of-an-adventure-story.mp3",
 ];
 
+window.bgmList = bgmList;
+
+
+function applyMusicVolume() {
+  const musicVolume = parseFloat(localStorage.getItem("musicVolume")) / 100;
+  bgmList.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.volume = musicVolume;
+  });
+}
+
+
 let currentBGM = null;
 
 function getRandomBGM(excludePath = null) {
@@ -277,18 +301,20 @@ function playRandomBGM() {
   const audio = new Audio(nextTrack);
   audio.loop = false;
 
-  // Ambil volume dari localStorage musicVolume
-  const savedVolume = parseFloat(localStorage.getItem("musicVolume")) || 5;
+  const savedVolume = parseFloat(localStorage.getItem("musicVolume") ?? 5);
   audio.volume = savedVolume / 100;
 
+  if (savedVolume <= 0) return; // ⛔ mute total, tidak play
+
   audio.addEventListener("ended", () => {
-    currentBGM = playRandomBGM(); // Auto play next
+    currentBGM = playRandomBGM();
   });
 
   audio.play();
   currentBGM = audio;
   return audio;
 }
+
 
 window.playRandomBGM = playRandomBGM;
 window.getCurrentBGM = () => currentBGM;
@@ -336,49 +362,75 @@ function resetCustomControls() {
 document.addEventListener("DOMContentLoaded", () => {
   loadCustomControls();
 
-  for (const id in defaultValue) {
-    if (localStorage.getItem(id) === null) {
-      localStorage.setItem(id, defaultValue[id]);
-    }
-  }
-
+  // ✅ Default volume jika belum ada
+  if (localStorage.getItem("musicVolume") === null) localStorage.setItem("musicVolume", 5); // 5%
+  if (localStorage.getItem("fxVolume") === null) localStorage.setItem("fxVolume", 15); // 15%
 
   // ✅ Load preset kontrol
   loadPreset('guideline');
 
-  // ✅ Volume setup
+  // ✅ BGM Handler
+  const bgmList = ["main-theme", "bgMusic"];
+  function applyMusicVolume() {
+    const musicVolume = parseFloat(localStorage.getItem("musicVolume")) / 100;
+    bgmList.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.volume = musicVolume;
+    });
+  }
+
+  // ✅ Atur volume BGM + slider music
   const musicSlider = document.getElementById("musicVolume");
   if (musicSlider) {
-    const savedVolume = parseFloat(localStorage.getItem("musicVolume")) || 5;
+    const storedMusicVolume = localStorage.getItem("musicVolume");
+    const savedVolume = storedMusicVolume !== null ? parseFloat(storedMusicVolume) : 5;
     musicSlider.value = savedVolume;
-    updateVolumeValue("musicVolume");
-  
-    const mainTheme = document.getElementById("main-theme");
-    if (mainTheme) {
-      mainTheme.volume = savedVolume / 100;
-    }
-  
+        updateVolumeValue("musicVolume");
+    applyMusicVolume();
+
     musicSlider.addEventListener("input", () => {
       const newVolume = parseFloat(musicSlider.value);
       localStorage.setItem("musicVolume", newVolume);
       updateVolumeValue("musicVolume");
-      if (mainTheme) mainTheme.volume = newVolume / 100;
-      if (currentBGM) currentBGM.volume = newVolume / 100;
+      applyMusicVolume();
     });
   }
-      // ✅ Slider update init
-    ["das", "arr", "sdf"].forEach(updateHandling);
 
+  // ✅ FX Volume - Button & semua SFX
+  const fxSlider = document.getElementById("fxVolume");
+  const fxVolume = parseFloat(localStorage.getItem("fxVolume") ?? 15);
+  const fxPercent = fxVolume / 100;
 
-  const buttonSound = document.getElementById("buttonSound");
-  if (buttonSound) {
-    buttonSound.volume = 0.15;
-    const fxSlider = document.getElementById("fxVolume");
-    if (fxSlider) {
-      fxSlider.value = 15;
+  const sfxIds = [
+    "rotate", "move", "harddrop", "softdrop", "lineclear", "hold", "gameover",
+    "countdown1", "countdown2", "countdown3",
+    "combo1", "combo2", "combo3", "combo4", "combo5", "combo6", "combo7", "combo8",
+    "combo9", "combo10", "combo11", "combo12", "combo13", "combo14", "combo15", "combo16",
+    "comboBreak", "buttonSound"
+  ];
+
+  sfxIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.volume = fxPercent;
+  });
+
+  if (fxSlider) {
+    fxSlider.value = fxVolume;
+    updateVolumeValue("fxVolume");
+    fxSlider.addEventListener("input", () => {
+      const newVol = parseFloat(fxSlider.value);
+      localStorage.setItem("fxVolume", newVol);
       updateVolumeValue("fxVolume");
-    }
+
+      sfxIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.volume = newVol / 100;
+      });
+    });
   }
+
+  // ✅ Slider update init (DAS, ARR, SDF)
+  ["das", "arr", "sdf"].forEach(updateHandling);
 
   // ✅ Background randomizer
   const backgrounds = [
@@ -390,7 +442,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.body.style.backgroundSize = 'cover';
   document.body.style.backgroundRepeat = 'no-repeat';
   document.body.style.backgroundPosition = 'center';
-  document.body.style.backgroundAttachment = 'fixed';  
+  document.body.style.backgroundAttachment = 'fixed';
 });
   
 

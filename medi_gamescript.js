@@ -3,17 +3,41 @@ let dropTrails = [];
 let trailPieces = [];
 let activeTrails = [];
 
+const wallkickOffsets = [
+  { x: 0, y: 0 },
+  { x: -1, y: 0 },
+  { x: 1, y: 0 },
+  { x: 0, y: -1 },
+  { x: 0, y: 1 }
+];
+
+const wallkick180Offsets = [
+  { x: 0, y: 0 },
+  { x: -1, y: 0 },
+  { x: 1, y: 0 },
+  { x: 0, y: -1 },
+  { x: 0, y: 1 },
+  { x: -2, y: 0 },
+  { x: 2, y: 0 }
+];
+
+// Untuk piece non-I
 const wallkickDataNormal = {
-  '0>1': [ {x: 0, y: 0}, {x: -1, y: 0}, {x: -1, y: 1}, {x: 0, y: -2}, {x: -1, y: -2} ],
-  '1>0': [ {x: 0, y: 0}, {x: 1, y: 0}, {x: 1, y: -1}, {x: 0, y: 2}, {x: 1, y: 2} ],
-  '1>2': [ {x: 0, y: 0}, {x: 1, y: 0}, {x: 1, y: -1}, {x: 0, y: 2}, {x: 1, y: 2} ],
-  '2>1': [ {x: 0, y: 0}, {x: -1, y: 0}, {x: -1, y: 1}, {x: 0, y: -2}, {x: -1, y: -2} ],
-  '2>3': [ {x: 0, y: 0}, {x: 1, y: 0}, {x: 1, y: 1}, {x: 0, y: -2}, {x: 1, y: -2} ],
-  '3>2': [ {x: 0, y: 0}, {x: -1, y: 0}, {x: -1, y: -1}, {x: 0, y: 2}, {x: -1, y: 2} ],
-  '3>0': [ {x: 0, y: 0}, {x: -1, y: 0}, {x: -1, y: -1}, {x: 0, y: 2}, {x: -1, y: 2} ],
-  '0>3': [ {x: 0, y: 0}, {x: 1, y: 0}, {x: 1, y: 1}, {x: 0, y: -2}, {x: 1, y: -2} ],
+  '0>1': [ {x:0, y:0}, {x:-1, y:0}, {x:-1, y:1}, {x:0, y:-2}, {x:-1, y:-2} ],
+  '1>0': [ {x:0, y:0}, {x:1, y:0}, {x:1, y:-1}, {x:0, y:2}, {x:1, y:2} ],
+
+  '1>2': [ {x:0, y:0}, {x:1, y:0}, {x:1, y:-1}, {x:0, y:2}, {x:1, y:2} ],
+  '2>1': [ {x:0, y:0}, {x:-1, y:0}, {x:-1, y:1}, {x:0, y:-2}, {x:-1, y:-2} ],
+
+  '2>3': [ {x:0, y:0}, {x:1, y:0}, {x:1, y:1}, {x:0, y:-2}, {x:1, y:-2} ],
+  '3>2': [ {x:0, y:0}, {x:-1, y:0}, {x:-1, y:-1}, {x:0, y:2}, {x:-1, y:2} ],
+
+  '3>0': [ {x:0, y:0}, {x:-1, y:0}, {x:-1, y:-1}, {x:0, y:2}, {x:-1, y:2} ],
+  '0>3': [ {x:0, y:0}, {x:1, y:0}, {x:1, y:1}, {x:0, y:-2}, {x:1, y:-2} ],
 };
 
+
+// Untuk piece I
 const wallkickDataI = {
   '0>1': [ {x: 0, y: 0}, {x: -2, y: 0}, {x: 1, y: 0}, {x: -2, y: 1}, {x: 1, y: -2} ],
   '1>0': [ {x: 0, y: 0}, {x: 2, y: 0}, {x: -1, y: 0}, {x: 2, y: -1}, {x: -1, y: 2} ],
@@ -41,24 +65,6 @@ function getWallkickData(type, from, to) {
   }
   return wallkickDataNormal[key] || [ {x:0, y:0} ];
 }
-
-const wallkickOffsets = [
-  { x: 0, y: 0 },
-  { x: -1, y: 0 },
-  { x: 1, y: 0 },
-  { x: 0, y: -1 },
-  { x: 0, y: 1 }
-];
-
-const wallkick180Offsets = [
-  { x: 0, y: 0 },
-  { x: -1, y: 0 },
-  { x: 1, y: 0 },
-  { x: 0, y: -1 },
-  { x: 0, y: 1 },
-  { x: -2, y: 0 },
-  { x: 2, y: 0 }
-];
 
 const defaultControls = {
   left: "ArrowLeft|a",
@@ -178,6 +184,8 @@ if (mode === 'solo' && !solo) {
     move: document.getElementById('move'),
     harddrop: document.getElementById('harddrop'),
     lineclear: document.getElementById('lineclear'),
+    hold: document.getElementById('hold'),
+    softdrop: document.getElementById('softdrop'),
     gameOverAlt: new Audio('sound/game_over.mp3'),
     levelup: document.getElementById('levelup'),
     countdown3: document.getElementById('countdown3'),
@@ -238,19 +246,18 @@ let moveFrameCounter = 0;
 let softDropTimer = 0;
 let tapLeft = false;
 let tapRight = false;
+let lockPending = false;
+let lockResetCount = 0;
+const LOCK_DELAY_MS = 500; // Durasi delay sebelum piece dikunci (dalam milidetik)
+const MAX_LOCK_RESETS = 15;
 
 
 const dasFrames = localStorage.getItem("das") !== null ? Math.round(parseFloat(localStorage.getItem("das"))) : 10;
 const arrFrames = localStorage.getItem("arr") !== null ? Math.round(parseFloat(localStorage.getItem("arr"))) : 2;
 const sdfSpeed = localStorage.getItem("sdf") !== null ? parseFloat(localStorage.getItem("sdf")) : 6;
-const sdfFrames = Math.round(60 / sdfSpeed); // 6X = 10F
+const sdfFrames = Math.round(60 / (sdfSpeed * 2)); // 6X = 5F
 
 const SOFT_DROP_INTERVAL = 40; // kamu bisa tweak ini sesuai feel
-
-let lockPending = false;
-let lockResetCount = 0;
-const LOCK_DELAY_MS = 500; // Durasi delay sebelum piece dikunci (dalam milidetik)
-
 
 const cheeseImage = new Image();
 cheeseImage.src = 'cheese.jpg'; // pastikan path ini sesuai lokasi file
@@ -581,65 +588,65 @@ function drawDebris(ctx) {
     if (lockTimeout) clearTimeout(lockTimeout);
   
     lockTimeout = setTimeout(() => {
-      if (!isTouchingGround()) {
+      // Cek apakah MASIH MENYENTUH dasar
+      player.pos.y--;
+      const stillTouching = collide(arena, player);
+      player.pos.y++; // restore posisi
+    
+      if (!stillTouching) {
         lockPending = false;
-        console.log('[LOCK CANCELLED] Not touching ground');
         return;
       }
-  
-      console.log('[LOCK COMMIT] Piece locked');
+    
       merge(arena, player);
       hold.hasHeld = false;
       arenaSweep();
       playerReset();
       lockPending = false;
       lockResetCount = 0;
+      landedY = null;
     }, LOCK_DELAY_MS);
-  }
+      }
     
             
-  function playerDrop() {
-    player.pos.y--;
-    if (collide(arena, player)) {
-      player.pos.y++;
-  
-      if (mode === "medi" && collide(arena, player)) {
-        // ❌ Jangan merge/reset kalau spawn langsung nabrak di meditetris
-        return;
+      function playerDrop() {
+        // Jangan drop kalau sudah mulai lock delay
+        if (lockPending) return;
+      
+        player.pos.y--;
+        if (collide(arena, player)) {
+          player.pos.y++;
+          
+          if (!lockPending) {
+            lockPending = true;
+            landedY = player.pos.y; // simpan posisi saat landed
+            startLockDelay();
+          }
+        } else {
+          dropCounter = 0;
+        }
       }
-  
-      merge(arena, player);
-  
-      if (player.pos.y + player.matrix.length >= arena.length) {
-        console.log("Player reached bottom — restarting...");
-        restartWithGarbage();
-        return;
+      
+      function playerMove(dir) {
+        player.pos.x += dir;
+      
+        if (collide(arena, player)) {
+          player.pos.x -= dir;
+        } else {
+          if (lockPending && lockResetCount < MAX_LOCK_RESETS) {
+            lockResetCount++;
+            startLockDelay();
+          }
+      
+          // 🔁 Suara gerakan horizontal (A/D) termasuk saat ARR aktif
+          if (sounds.move) {
+            const moveSound = sounds.move.cloneNode(); // clone = bisa overlap
+            moveSound.volume = sounds.move.volume;
+            moveSound.play();
+          }
+        }
       }
-  
-      hold.hasHeld = false;
-      arenaSweep();
-      playerReset();
-      return;
-    }
-    dropCounter = 0;
-  }
-  
-  function playerMove(dir) {
-    player.pos.x += dir;
-  
-    if (collide(arena, player)) {
-      player.pos.x -= dir;
-    } else {
-      if (lockPending && lockResetCount < MAX_LOCK_RESETS) {
-        lockResetCount++;
-        startLockDelay();
-      }
-  
-      sounds.move.currentTime = 0;
-      sounds.move.play();
-    }
-  }
-
+          
   function handleInitialMove(dir) {
     currentMoveDir = dir;
     playerMove(dir); // geser langsung pertama
@@ -662,24 +669,11 @@ function drawDebris(ctx) {
   
 
   function playerRotate() {
-    const m = player.matrix;
-    for (let y = 0; y < m.length; ++y) {
-      for (let x = 0; x < y; ++x) {
-        [m[x][y], m[y][x]] = [m[y][x], m[x][y]];
+    if (tryRotate(1)) {
+      if (lockPending && lockResetCount < MAX_LOCK_RESETS) {
+        lockResetCount++;
+        startLockDelay();
       }
-    }
-    m.forEach(row => row.reverse());
-    if (collide(arena, player)) {
-      m.forEach(row => row.reverse());
-      for (let y = 0; y < m.length; ++y) {
-        for (let x = 0; x < y; ++x) {
-          [m[x][y], m[y][x]] = [m[y][x], m[x][y]];
-        }
-      }
-    } else {
-      sounds.rotate.currentTime = 0;
-      sounds.rotate.play();
-    rotatedLast = true;
     }
   }
 
@@ -991,9 +985,16 @@ if (clearedRows.length > 0) {
       if (softDropCounter >= sdfFrames) {
         softDropCounter = 0;
         playerDrop();
+    
+        // 🔊 Clone & play softdrop sound
+        if (sounds.softdrop) {
+          const softdropSFX = sounds.softdrop.cloneNode();
+          softdropSFX.volume = sounds.softdrop.volume;
+          softdropSFX.play();
+        }
       }
     }
-  
+      
     // 🔵 Auto fall (gravity)
     dropCounter += deltaTime;
     if (!lockPending && dropCounter > dropInterval) {
@@ -1322,6 +1323,11 @@ function resetGame() {
 
     if (hold.hasHeld) return;
     hold.hasHeld = true;
+
+    if (sounds.hold) {
+      sounds.hold.currentTime = 0;
+      sounds.hold.play();
+    }
   
     let temp = hold.matrix;
     hold.matrix = player.matrix;

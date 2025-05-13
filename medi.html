@@ -61,20 +61,20 @@
   </div>
   
   <script src="tspin_detector.js"></script>
+  <script src="setting.js"></script>
   <script src="medi_gamescript.js" defer></script>
 
   <!-- Sound Effects -->
   <audio id="rotate" src="Sound/rotate.wav"></audio>
   <audio id="move" src="Sound/move.wav"></audio>
   <audio id="harddrop" src="Sound/harddrop.wav"></audio>
+  <audio id="softdrop" src="Sound/move.wav"></audio>
   <audio id="lineclear" src="Sound/clearline.wav"></audio>
-  <audio id="gameover" src="Sound/game_over.wav"></audio>
+  <audio id="gameover" src="Sound/gameover.wav"></audio>
   <audio id="levelup" src="Sound/levelup.wav"></audio>
-  <audio id="countdown3" src="Sound/countdown3.wav"></audio>
-  <audio id="countdown2" src="Sound/countdown2.wav"></audio>
-  <audio id="countdown1" src="Sound/countdown1.wav"></audio>
-  <audio id="mainTheme" src="Sound/Main-Theme.mp3" loop></audio>
-  <audio id="bgMusic" src="Sound/Tetris Soundtrack.mp3" loop></audio>
+  <audio id="countdown3" src="Sound/Count3.mp3"></audio>
+  <audio id="countdown2" src="Sound/Count2.mp3"></audio>
+  <audio id="countdown1" src="Sound/Count1.mp3"></audio> 
 
   <!-- Combo Sounds -->
   <audio id="combo1" src="Sound/combo_1_power.wav"></audio>
@@ -106,12 +106,33 @@
       }
     }
 
-    document.addEventListener("DOMContentLoaded", () => {
-      document.querySelectorAll("button").forEach(btn => {
-        btn.addEventListener("mouseenter", playButtonSound);
-        btn.addEventListener("click", playButtonSound);
-      });
-    });
+// Volume default initializer
+if (localStorage.getItem("musicVolume") === null) localStorage.setItem("musicVolume", 5);
+if (localStorage.getItem("fxVolume") === null) localStorage.setItem("fxVolume", 15);
+
+// Terapkan volume saat halaman dimuat
+window.addEventListener("DOMContentLoaded", () => {
+  const musicVolume = parseFloat(localStorage.getItem("musicVolume")) / 100;
+  const fxVolume = parseFloat(localStorage.getItem("fxVolume")) / 100;
+
+  // Apply ke semua musik
+  const musicAudio = document.getElementById("main-theme");
+  if (musicAudio) musicAudio.volume = musicVolume;
+
+  // Apply ke semua efek SFX
+  const sfxIds = [
+    "rotate", "move", "harddrop", "softdrop", "lineclear", "hold", "gameover",
+    "countdown1", "countdown2", "countdown3",
+    "combo1", "combo2", "combo3", "combo4", "combo5", "combo6", "combo7", "combo8",
+    "combo9", "combo10", "combo11", "combo12", "combo13", "combo14", "combo15", "combo16",
+    "comboBreak"
+  ];
+
+  sfxIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.volume = fxVolume;
+  });
+});
   </script>
 
   <div id="comboTitle">Combo!</div>

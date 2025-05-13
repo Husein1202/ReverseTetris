@@ -116,12 +116,13 @@
   <audio id="rotate" src="Sound/rotate.wav"></audio>
   <audio id="move" src="Sound/move.wav"></audio>
   <audio id="harddrop" src="Sound/harddrop.wav"></audio>
+  <audio id="softdrop" src="Sound/move.wav"></audio>
   <audio id="lineclear" src="Sound/clearline.wav"></audio>
-  <audio id="gameover" src="Sound/game_over.mp3" preload="auto"></audio>
-  <audio id="countdown3" src="Sound/countdown3.wav"></audio>
-  <audio id="countdown2" src="Sound/countdown2.wav"></audio>
-  <audio id="countdown1" src="Sound/countdown1.wav"></audio>
-  <audio id="mainTheme" src="Sound/Main-Theme.mp3" loop></audio>
+  <audio id="hold" src="Sound/hold.wav"></audio>
+  <audio id="gameover" src="Sound/gameover.wav"></audio>
+  <audio id="countdown3" src="Sound/Count3.mp3"></audio>
+  <audio id="countdown2" src="Sound/Count2.mp3"></audio>
+  <audio id="countdown1" src="Sound/Count1.mp3"></audio>
 
   <!-- Combo Sounds -->
   <audio id="combo1" src="Sound/combo_1_power.wav"></audio>
@@ -143,15 +144,39 @@
   <audio id="comboBreak" src="Sound/combobreak.wav"></audio>
 
   <audio id="buttonSound" src="Sound/hit" preload="auto"></audio>
+  
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const musicVolume = parseFloat(localStorage.getItem("musicVolume") ?? 5);
+const fxVolume = parseFloat(localStorage.getItem("fxVolume") ?? 15);
+    
+      // ✅ Atur volume ke BGM dinamis (yang dibuat dari Audio di setting.js)
+      const currentBGM = window.getCurrentBGM?.();
+      if (currentBGM) currentBGM.volume = musicVolume;
+    
+      // ✅ Atur volume ke semua SFX
+      const sfxIds = [
+        "rotate", "move", "harddrop", "softdrop", "lineclear", "hold", "gameover",
+        "countdown1", "countdown2", "countdown3",
+        "combo1", "combo2", "combo3", "combo4", "combo5", "combo6", "combo7", "combo8",
+        "combo9", "combo10", "combo11", "combo12", "combo13", "combo14", "combo15", "combo16",
+        "comboBreak", "buttonSound"
+      ];
+      sfxIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.volume = fxVolume;
+      });
+    });
+    </script>
+            
   <script>
     const buttonSound = document.getElementById("buttonSound");
 
     function playButtonSound() {
-      if (buttonSound) {
-        buttonSound.currentTime = 0;
-        buttonSound.play().catch(() => {}); 
-      }
-    }
+  if (!buttonSound || buttonSound.volume <= 0) return;
+  buttonSound.currentTime = 0;
+  buttonSound.play().catch(() => {});
+}
 
     document.addEventListener("DOMContentLoaded", () => {
       document.querySelectorAll("button").forEach(btn => {
@@ -159,21 +184,10 @@
         btn.addEventListener("click", playButtonSound);
       });
     });
+
   </script>
 
   <div id="comboTitle">Combo!</div>
-
-
-  <div id="customCompleteOverlay" class="hidden">
-    <div class="completion-box">
-      <h2 id="finalTimeLabel">okay you have done it</h2>
-      <p id="finalTimeValue">want more challenging? lets go</p>
-      <div class="gameOverButtons">
-        <button id="goButton">Go</button>
-        <button id="againButton">Again</button>
-      </div>
-    </div>
-  </div>
   
 </body>
 </html>

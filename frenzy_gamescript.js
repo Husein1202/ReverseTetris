@@ -252,6 +252,8 @@ if (mode === 'solo' && !solo) {
     move: document.getElementById('move'),
     harddrop: document.getElementById('harddrop'),
     lineclear: document.getElementById('lineclear'),
+    hold: document.getElementById('hold'),
+    softdrop: document.getElementById('softdrop'),
     gameover: document.getElementById('gameover'),
     gameOverAlt: new Audio('sound/game_over.mp3'),
     levelup: document.getElementById('levelup'),
@@ -629,11 +631,15 @@ function drawDebris(ctx) {
         startLockDelay();
       }
   
-      sounds.move.currentTime = 0;
-      sounds.move.play();
+      // 🔁 Suara gerakan horizontal (A/D) termasuk saat ARR aktif
+      if (sounds.move) {
+        const moveSound = sounds.move.cloneNode(); // clone = bisa overlap
+        moveSound.volume = sounds.move.volume;
+        moveSound.play();
+      }
     }
   }
-
+      
   function handleInitialMove(dir) {
     currentMoveDir = dir;
     playerMove(dir); // geser langsung pertama
@@ -995,9 +1001,16 @@ if (clearedRows.length > 0) {
       if (softDropCounter >= sdfFrames) {
         softDropCounter = 0;
         playerDrop();
+    
+        // 🔊 Clone & play softdrop sound
+        if (sounds.softdrop) {
+          const softdropSFX = sounds.softdrop.cloneNode();
+          softdropSFX.volume = sounds.softdrop.volume;
+          softdropSFX.play();
+        }
       }
     }
-  
+      
     // 🔵 Auto fall (gravity)
     dropCounter += deltaTime;
     if (!lockPending && dropCounter > dropInterval) {
@@ -1266,6 +1279,11 @@ if (clearedRows.length > 0) {
 
     if (hold.hasHeld) return;
     hold.hasHeld = true;
+
+    if (sounds.hold) {
+      sounds.hold.currentTime = 0;
+      sounds.hold.play();
+    }
   
     let temp = hold.matrix;
     hold.matrix = player.matrix;
