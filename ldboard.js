@@ -24,6 +24,13 @@
       }
     });
   }
+
+  document.addEventListener("DOMContentLoaded", () => {
+  const nickname = localStorage.getItem('nickname') || "Player";
+  const tag = document.getElementById('nicknameTag');
+  if (tag) tag.textContent = nickname;
+});
+
   
   // Tab switching
   document.querySelectorAll('.mode-tab').forEach(tab => {

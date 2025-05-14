@@ -5,7 +5,20 @@
   <title>Leaderboards</title>
   <link rel="stylesheet" href="style.css">
 </head>
+
 <body class="leaderboard">
+    <div class="solo-header">
+    <div class="home-label">LEADERBOARD</div>
+      <div class="player-info">
+      <img src="anon-avatar.jpg" alt="Avatar" class="avatar" />
+    <div class="text-info">
+      <div id="nicknameTag"></div>
+      <div class="anon-label">ANONYMOUS</div>
+    </div>
+    </div>
+  </div>
+  <button id="backToMode">BACK</button>
+
   <div class="leaderboard-container">
     <div class="ldboardtitle">LEADERBOARD</div>
 
@@ -216,6 +229,7 @@
 
 
   </div>
+<script src="ldboard.js"></script>
 
   <script>
     const tabs = document.querySelectorAll('.tab');
@@ -238,7 +252,14 @@
         });
       });
     });
+
+    const backButton = document.getElementById('backToMode');
+if (backButton) {
+  backButton.addEventListener('click', () => {
+    window.location.href = 'select-mode.html';
+  });
+}
+
   </script>
-    
 </body>
 </html>
