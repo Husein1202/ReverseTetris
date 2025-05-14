@@ -927,7 +927,7 @@ if (mode?.includes("medi")) {
 function updateMeditetrisScore(linesCleared) {
   
   let gained = 0;
-if (linesCleared === 1) gained = 1000;
+if (linesCleared === 1) gained = 50;
 else if (linesCleared === 2) gained = 100;
 else if (linesCleared === 3) gained = 150;
 else if (linesCleared >= 4) gained = 300;
