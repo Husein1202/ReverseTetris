@@ -64,11 +64,12 @@ const defaultControls = {
   left: "ArrowLeft|a",
   right: "ArrowRight|d",
   softdrop: "ArrowUp|w",
-  harddrop: "Space",    
+  harddrop: " ",    
   cw: "s|ArrowDown",
   ccw: "z",
   rotate180: "c",
-  hold: "Shift|h"
+  hold: "Shift|h",
+  exit: "Escape"
 };
 
 let activeControlSlot = parseInt(localStorage.getItem("activeControlSlot")) || 1;
@@ -1105,14 +1106,21 @@ if (clearedRows.length > 0) {
   });
   
   document.addEventListener('keydown', (e) => {
-    const key = e.key.toLowerCase(); // langsung lowercase di awal
+    const key = e.key.toLowerCase();
     const action = activeKeyBindings[key];
   
-    const keysToPrevent = [" ", "arrowup", "arrowdown", "arrowleft", "arrowright"];
+    if (action === "exit") {
+      // ⛔ Kalau lagi hold, JANGAN langsung exit
+      if (escHoldTimeout) return;
+      window.location.href = "select-mode.html";
+      return;
+    }
+    
+    const keysToPrevent = [" ", "arrowup", "arrowdown", "arrowleft", "arrowright", "escape"];
     if (keysToPrevent.includes(key)) {
       e.preventDefault();
     }
-    
+  
     if (!isPaused || key === 'p') {
       switch (action) {
         case 'left':
@@ -1171,7 +1179,7 @@ if (clearedRows.length > 0) {
   
     totalKeysPressed++;
   });
-            
+              
   document.addEventListener("keyup", (e) => {
     const key = e.key.toLowerCase();
     const action = activeKeyBindings[key];
@@ -1336,4 +1344,88 @@ if (clearedRows.length > 0) {
       });
     });
   }
+
+let escHoldTimeout = null;
+let escStartTime = null;
+let escAnimationFrame = null;
+const HOLD_DURATION = 2000;
+
+const quitOverlay = document.getElementById('holdToQuitOverlay');
+const progressQuitBar = document.getElementById('progressQuitBar');
+
+function updateProgressBar() {
+  const elapsed = Date.now() - escStartTime;
+  const progress = Math.min(elapsed / HOLD_DURATION, 1);
+  if (progressQuitBar) {
+    progressQuitBar.style.width = `${progress * 100}%`;
+  }
+
+  const holdText = document.getElementById('holdText');
+  if (holdText) {
+    if (progress >= 0.8) {
+      holdText.textContent = "OKAY UP TO YOU";
+    } else if (progress >= 0.4) {
+      holdText.textContent = "YOU SURE ?";
+    } else {
+      holdText.textContent = "KEEP HOLD THAT BUTTON TO QUIT";
+    }
+  }
+
+  if (quitOverlay) {
+    const maxHeight = 100;
+    const minHeight = 30;
+    const dynamicHeight = minHeight + (maxHeight - minHeight) * progress;
+    quitOverlay.style.height = `${dynamicHeight}px`;
+  }
+
+  if (progress < 1) {
+    escAnimationFrame = requestAnimationFrame(updateProgressBar);
+  } else {
+    requestAnimationFrame(() => {
+      window.location.href = "select-mode.html";
+    });
+  }
+}
+
+document.addEventListener("keydown", function (e) {
+  if (e.key === "Escape" && !escHoldTimeout) {
+    escStartTime = Date.now();
+
+    if (quitOverlay) {
+      quitOverlay.style.display = 'flex';
+      quitOverlay.style.animation = 'none';
+      void quitOverlay.offsetHeight;
+      quitOverlay.style.animation = 'slideUp 0.3s ease-out';
+    }
+
+    updateProgressBar();
+    escHoldTimeout = setTimeout(() => {}, HOLD_DURATION);
+  }
+});
+
+document.addEventListener("keyup", function (e) {
+  if (e.key === "Escape") {
+    clearTimeout(escHoldTimeout);
+    cancelAnimationFrame(escAnimationFrame);
+    escHoldTimeout = null;
+    escAnimationFrame = null;
+
+    const holdText = document.getElementById('holdText');
+    if (holdText) {
+      holdText.textContent = "NICE, THANKYOU FOR KEEP PLAYING";
+    }
+
+    if (quitOverlay) {
+      quitOverlay.style.height = '30px';
+      quitOverlay.style.animation = 'none';
+      void quitOverlay.offsetHeight;
+      quitOverlay.style.animation = 'slideDown 1s ease-in';
+
+      setTimeout(() => {
+        quitOverlay.style.display = 'none';
+        if (progressQuitBar) progressQuitBar.style.width = "0%";
+      }, 1000);
+    }
+  }
+});
 };

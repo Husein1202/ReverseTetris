@@ -75,8 +75,6 @@
       <div><span>LINES</span><span id="statLines">0</span></div>
       <div><span>LINES / MINUTE</span><span id="statLPM">0</span></div>
       <div><span>MAX COMBO</span><span id="statCombo">x0</span></div>
-    </div>
-
     <button id="completionbackMode">BACK TO MODE</button>
     <script>
       document.getElementById("completionbackMode").addEventListener("click", () => {
@@ -86,7 +84,13 @@
     
   </div>
 </div>
-
+    </div>
+      <div id="holdToQuitOverlay">
+    <div id="holdText">KEEP HOLD THAT BUTTON TO QUIT</div>
+    <div class="progress-bar-container">
+      <div class="progress-bar" id="progressQuitBar"></div>
+    </div>
+  </div>
   
 
   <div id="countdownOverlay">

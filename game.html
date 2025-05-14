@@ -58,7 +58,7 @@
       </div>
     </div>
   </div>
-
+  
   <div id="gameOverOverlay">
     <div class="gameOver-stats-box">
       <h2>GAME OVER</h2>
@@ -69,7 +69,6 @@
     </div>
   </div>
   
-
   <div id="completionOverlay" style="display: none;">
     <div class="completion-stats-box">
       <h3 class="final-label">FINAL TIME</h3>
@@ -90,6 +89,14 @@
       <button id="completionbackMode" onclick="window.location.href='select-mode.html'">Back</button>
     </div>
   </div>
+  <div id="holdToQuitOverlay">
+    <div id="holdText">KEEP HOLD THAT BUTTON TO QUIT</div>
+    <div class="progress-bar-container">
+      <div class="progress-bar" id="progressQuitBar"></div>
+    </div>
+  </div>
+      
+
   
   <div id="countdownOverlay">
     <div id="countdownText">3</div>
@@ -142,13 +149,14 @@
   <audio id="combo15" src="Sound/combo_15_power.wav"></audio>
   <audio id="combo16" src="Sound/combo_16_power.wav"></audio>
   <audio id="comboBreak" src="Sound/combobreak.wav"></audio>
-
-  <audio id="buttonSound" src="Sound/hit" preload="auto"></audio>
-  
+    
   <script>
     document.addEventListener("DOMContentLoaded", () => {
       const musicVolume = parseFloat(localStorage.getItem("musicVolume") ?? 5);
-const fxVolume = parseFloat(localStorage.getItem("fxVolume") ?? 15);
+const rawFxVolume = parseFloat(localStorage.getItem("fxVolume") ?? 15);
+const fxVolume = rawFxVolume / 100;
+
+
     
       // ✅ Atur volume ke BGM dinamis (yang dibuat dari Audio di setting.js)
       const currentBGM = window.getCurrentBGM?.();
