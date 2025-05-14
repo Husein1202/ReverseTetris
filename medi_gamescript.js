@@ -104,6 +104,7 @@ window.coolNicknames = [
 
 window.onload = () => {
   applyActiveControlBindings();
+  localStorage.setItem('selectedGameMode', 'medi'); // ⬅️ Tambahkan ini
 
   const mode = localStorage.getItem('selectedGameMode');
 const solo = localStorage.getItem('selectedSoloMode');
@@ -145,7 +146,7 @@ if (mode === 'solo' && !solo) {
   const comboTitle = document.getElementById("comboTitle");
 
   function showComboTitle(linesCleared) {
-  const names = ["Single", "Double", "Triple", "Quadruple", "Quintuple", "U nailed it!"];
+  const names = ["Single", "Double", "Triple", "Quad", "TETRIS!!", "U nailed it!"];
   const label = names[Math.min(linesCleared - 1, names.length - 1)];
   comboTitle.textContent = label;
   comboTitle.style.opacity = 1;
@@ -173,7 +174,7 @@ if (mode === 'solo' && !solo) {
   const pauseButton = document.getElementById('pauseButton');
   const congratsText = document.getElementById('congratsText');
 
-  const phrases = ["Mantap!", "Wow!", "Hebat!!", "Keren!", "GG!", "🔥", "Nice!"];
+  const phrases = ["Superb!", "Wow!", "Hebat!!", "Keren!", "GG!", "🔥", "Nice!"];
 
   const FrenzyTimerElement = document.getElementById("FrenzyTimer");
   let FrenzyTimeRemaining = 2 * 60 * 1000; // 2 menit dalam ms
@@ -205,7 +206,6 @@ if (mode === 'solo' && !solo) {
   const player = {
     pos: { x: 0, y: 0 },
     matrix: null,
-    level: 1,
     lines: 0,
     next: null,
   };
@@ -224,10 +224,6 @@ let totalPiecesDropped = 0;
 let totalKeysPressed = 0;
 let highestCombo = 0;
 let holdCount = 0;
-let garbageQueue = 0;
-let garbageInterval = 1000; // 20 detik
-let lastGarbageTime = Date.now();
-let lastGarbagePattern = []; // menyimpan pola garbage untuk restart
 let lockTimeout;
 let landedY = null; // tambahkan global di awal
 let isSoftDropping = false;
@@ -251,6 +247,13 @@ let lockResetCount = 0;
 const LOCK_DELAY_MS = 500; // Durasi delay sebelum piece dikunci (dalam milidetik)
 const MAX_LOCK_RESETS = 15;
 let isRestarting = false;
+let medScore = 0;
+let medLevel = 1;
+const maxLevel = 20;
+const baseLevelScore = 500;
+const minDropInterval = 80; // hampir instan saat level 15+
+const maxDropInterval = 1000; // awalnya lambat
+
 
 
 const dasFrames = localStorage.getItem("das") !== null ? Math.round(parseFloat(localStorage.getItem("das"))) : 10;
@@ -414,26 +417,7 @@ function drawFlashLines(ctx) {
     flash.alpha -= 0.05;
   });
   flashLines = flashLines.filter(f => f.alpha > 0);
-}
-
-async function addGarbageFromTop(lines = 15, pattern = null) {
-    for (let i = 0; i < lines; i++) {
-      const hole = pattern ? pattern[i] : Math.floor(Math.random() * arena[0].length);
-      const garbageRow = new Array(arena[0].length).fill(8);
-      garbageRow[hole] = 0;
-  
-      // Geser arena ke bawah
-      for (let y = arena.length - 1; y > 0; y--) {
-        arena[y] = [...arena[y - 1]];
-      }
-      arena[0] = garbageRow;
-  
-      draw(); // redraw arena
-  
-      // Jangan naikkan posisi player karena belum muncul
-    }
-  }
-  
+}  
 let debrisParticles = [];
 
 function spawnDebris(y) {
@@ -841,18 +825,6 @@ function drawDebris(ctx) {
   
   const COLS = 12;
 const ROWS = 30;
-
-
-  function generateGarbageLine() {
-    const hole = Math.floor(Math.random() * COLS);
-    const garbageLine = [];
-    for (let x = 0; x < COLS; x++) {
-      garbageLine[x] = (x === hole) ? 0 : 8; // 8 = warna garbage
-    }
-    arena.pop(); // Buang baris paling bawah
-    arena.unshift(garbageLine); // Tambah garbage dari atas
-  }
-
   
   function playerReset() {
     const pieces = 'TJLOSZI';
@@ -905,15 +877,13 @@ if (clearedRows.length > 0) {
     spawnDebris(rowY);    // Debris jatuh di baris itu juga
   });
 }
-
-  
     if (linesCleared > 0) {
       triggerFlash(); 
       const tspinType = detectTSpinType(player, arena, linesCleared, rotatedLast);
       if (tspinType) {
         congratsText.textContent = tspinType;
       }      rotatedLast = false;
-  
+
       comboCount += linesCleared;
       if (comboCount > highestCombo) highestCombo = comboCount;
 
@@ -923,30 +893,27 @@ if (clearedRows.length > 0) {
         sounds[soundId].currentTime = 0;
         sounds[soundId].play();
       }
-  
+
       comboDisplay.textContent = `Combo x${comboCount}!`;
       comboDisplay.style.opacity = 1;
       clearTimeout(comboDisplayTimeout);
       comboDisplayTimeout = setTimeout(() => {
         comboDisplay.style.opacity = 0;
       }, 1000);
-  
+
       sounds.lineclear.currentTime = 0;
       sounds.lineclear.play();
-  
+
       const phrase = phrases[Math.floor(Math.random() * phrases.length)];
       congratsText.textContent = phrase;
-  
+
       player.lines += linesCleared;
-  
-      const newLevel = Math.floor(player.lines / 40) + 1;
-      if (newLevel !== player.level) {
-        player.level = newLevel;
-        dropInterval = Math.max(100, 1000 - (player.level - 1) * 100);
-        sounds.levelup.currentTime = 0;
-        sounds.levelup.play();
-      }
-  
+if (mode?.includes("medi")) {
+  console.log("✨ Calling score update...");
+  updateMeditetrisScore(linesCleared);
+}
+
+
     } else {
       if (comboCount > 0) {
         comboCount = 0;
@@ -955,7 +922,53 @@ if (clearedRows.length > 0) {
         comboDisplay.style.opacity = 0;
       }
     }
-  }
+    }
+
+function updateMeditetrisScore(linesCleared) {
+  
+  let gained = 0;
+if (linesCleared === 1) gained = 1000;
+else if (linesCleared === 2) gained = 100;
+else if (linesCleared === 3) gained = 150;
+else if (linesCleared >= 4) gained = 300;
+
+  medScore += gained;
+
+  const targetLevel = Math.min(Math.floor(medScore / baseLevelScore) + 1, maxLevel);
+if (targetLevel > medLevel) {
+  medLevel = targetLevel;
+  if (sounds.levelup) sounds.levelup.play();
+  document.getElementById('medLevel').textContent = medLevel;
+
+  // ✅ Custom dropInterval per level range
+if (medLevel < 5) {
+  dropInterval = 1000;
+} else if (medLevel < 10) {
+  // Level 5–9: 600 → 400ms
+  const progress = (medLevel - 5) / 4;
+  dropInterval = 600 - progress * 200;
+} else if (medLevel < 15) {
+  // Level 10–14: 300 → 100ms
+  const progress = (medLevel - 10) / 4;
+  dropInterval = 300 - progress * 200;
+} else {
+  // Level 15–20: 100 → 30ms
+  const progress = (medLevel - 15) / 5;
+  dropInterval = Math.max(30, 100 - progress * 70);
+}
+
+  showLevelUpOverlay();
+}
+
+  // ✅ FIX: Tambahkan definisi currentTarget di sini
+  const currentTarget = Math.min(medLevel * baseLevelScore, maxLevel * baseLevelScore);
+  const scoreEl = document.getElementById('score');
+  if (scoreEl) {
+    scoreEl.textContent = `${medScore}/${currentTarget}`;
+  } 
+}
+
+
   
   function update(time = 0) {
     if (isPaused || isGameOver) return;
@@ -1027,61 +1040,12 @@ if (clearedRows.length > 0) {
     requestAnimationFrame(update);
   }
   
-  const now = performance.now();
-
-if (now - lastGarbageTime > garbageInterval && !isPaused && !isGameOver) {
-  lastGarbageTime = now;
-  garbageQueue++;
-
-  // Buat pola baru dan simpan
-  const newHoles = [];
-  for (let i = 0; i < 1; i++) {
-    newHoles.push(Math.floor(Math.random() * arena[0].length));
-  }
-  lastGarbagePattern.push(...newHoles);
-  addGarbageFromTop(1, newHoles);
-
-  // Cek tabrakan — jika tertimpa, restart otomatis
-  if (collide(arena, player)) {
-    restartWithGarbage();
-    return;
-  }
-}
-
 function startRestartSequence() {
   isGameOver = true;
   resetGame();
   isRestarting = false;
-  restartWithGarbage();
 }
 
-async function restartWithGarbage() {
-  clearPlayerFromArena();
-  arena.forEach(row => row.fill(0));
-  await addGarbageFromTop(15);
-
-  playerReset(); // Spawn tetromino baru
-
-  // 🔐 Cegah tetromino baru langsung merge kalau langsung nabrak
-  if (mode === 'medi' && collide(arena, player)) {
-    // Delay sebentar, lalu reset game (anggap game over)
-    setTimeout(() => {
-      isGameOver = true;
-      resetGame();
-    }, 300);
-    return;
-  }
-
-  hold.hasHeld = false;
-  hold.piece = null;
-  dropCounter = 0;
-
-  draw();
-  await new Promise(r => setTimeout(r, 100)); // delay 100ms sebelum draw()
-}
-
-
-  
 function resetGame() {
   console.log("🧼 Reset game triggered");
   controlsLocked = true;
@@ -1089,7 +1053,6 @@ function resetGame() {
   arena.forEach(row => row.fill(0));
   player.score = 0;
   player.lines = 0;
-  player.level = 0;
 
   playerReset();
   console.log("🧩 Tetromino baru di-spawn");
@@ -1295,9 +1258,7 @@ function resetGame() {
     // ✅ Spawn tetromino dulu
     playerReset();
   
-    // ✅ Baru animasi garbage muncul dari atas
-    await addGarbageFromTop(15);
-  
+    // ✅ Baru animasi garbage muncul dari atas  
     lastTime = performance.now();
     timerStarted = true;
 
@@ -1310,15 +1271,46 @@ function resetGame() {
 
   
     let now = Date.now();
-    if (now - lastGarbageTime > garbageInterval) {
-      addGarbageFromTop(1);
-      lastGarbageTime = now;
-    }
   };
     
-      
-  // ✅ Final call (ONLY this)
-  startCountdown(); // jangan ada baris lain setelah ini (seperti update() atau playerReset())
+// 🔽 Tambahkan di atas baris startCountdown()
+function showLevelUpOverlay() {
+  const overlay = document.getElementById("levelUpOverlay");
+  if (!overlay) return;
+
+  isPaused = true; // ⛔ Freeze game logic & gravity
+  overlay.classList.add("active");
+
+  // Countdown 3..2..1
+  let count = 3;
+  const countdown = document.createElement("div");
+  countdown.style.fontSize = "3rem";
+  countdown.style.marginTop = "1rem";
+  countdown.textContent = count;
+  overlay.appendChild(countdown);
+
+  const interval = setInterval(() => {
+    count--;
+    if (count === 0) {
+      clearInterval(interval);
+      overlay.classList.remove("active");
+      overlay.removeChild(countdown);
+      arena.forEach(row => row.fill(0));
+
+
+      // ✅ Resume game without resetting score/level
+      playerReset();
+      lastTime = performance.now();
+      isPaused = false; // 🔓 Unpause the game
+      update();
+    } else {
+      countdown.textContent = count;
+    }
+  }, 1000);
+}
+
+// ✅ Final call (ONLY this)
+startCountdown(); // jangan ada baris lain setelah ini (seperti update() atau playerReset())
   
   let hold = {
     matrix: null,
