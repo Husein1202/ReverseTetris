@@ -185,67 +185,66 @@ if (mode === 'solo' && !solo) {
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   }
 
-  function updateFrenzyTimer(deltaTime) {
-    if (isPaused || isGameOver || !timerStarted) return;
-  
-    FrenzyTimeRemaining -= deltaTime;
-    if (FrenzyTimeRemaining <= 0) {
-      FrenzyTimeRemaining = 0;
-      isGameOver = true;
-  
-      // Stop background music and play gameover sound
-      sounds.bgMusic.pause();
-      sounds.gameover.currentTime = 0;
-      sounds.gameover.play();
-  
-      // Tampilkan overlay
-      document.getElementById("completionOverlay").style.display = "flex";
-  
-      // Skor akhir
-      document.getElementById("finalScoreDisplay").textContent = player.score;
-      document.getElementById("statScore").textContent = player.score;
-  
-      // Pastikan waktu dihitung akurat
-      const totalElapsed = Date.now() - gameStartTime; // pastikan kamu set `gameStartTime = Date.now()` saat game dimulai
-      const totalSeconds = totalElapsed / 1000;
-  
-      // Stats akurat
-      document.getElementById("statPieces").textContent = totalPiecesDropped;
-      const pps = totalSeconds > 0 ? (totalPiecesDropped / totalSeconds).toFixed(2) : "0.00";
-      document.getElementById("statPPS").textContent = pps;
-  
-      document.getElementById("statKeys").textContent = totalKeysPressed;
-      document.getElementById("statKPP").textContent = totalPiecesDropped > 0
-        ? (totalKeysPressed / totalPiecesDropped).toFixed(2)
-        : "0.00";
-  
-      document.getElementById("statCombo").textContent = "x" + highestCombo;
-      document.getElementById("statLines").textContent = player.lines;
+function updateFrenzyTimer(deltaTime) {
+  if (isPaused || isGameOver || !timerStarted) return;
 
-  
-      const lpm = totalSeconds > 0
-        ? (player.lines / (totalSeconds / 60)).toFixed(0)
-        : "0";
-      document.getElementById("statLPM").textContent = lpm;
-  
-      document.getElementById("statHolds").textContent = holdCount;
-  
-      // Back button
-      const backBtn = document.getElementById("completionbackMode");
-      if (backBtn) {
-        backBtn.onclick = () => window.location.href = "select-mode.html";
-      }
-  
-      if (FrenzyTimerElement) {
-        FrenzyTimerElement.textContent = "0:00";
-      }
-  
-    } else {
-      if (FrenzyTimerElement) {
-        FrenzyTimerElement.textContent = formatFrenzyTime(FrenzyTimeRemaining);
+  FrenzyTimeRemaining -= deltaTime;
+
+  if (FrenzyTimeRemaining <= 0) {
+    FrenzyTimeRemaining = 0;
+    isGameOver = true;
+
+    // ✅ Stop musik jika sedang berjalan
+    const bgm = window.getCurrentBGM?.();
+    if (bgm) {
+      bgm.pause();
+      bgm.currentTime = 0;
+    }
+
+    // ✅ Mainkan suara game over kalau tersedia
+    if (sounds.gameover) {
+      try {
+        sounds.gameover.currentTime = 0;
+        sounds.gameover.play().catch(e => console.warn("Auto-play blocked:", e));
+      } catch (err) {
+        console.warn("Gagal play sounds.gameover:", err);
       }
     }
+
+    // ✅ Tampilkan overlay dan statistik seperti biasa...
+    document.getElementById("completionOverlay").style.display = "flex";
+    document.getElementById("finalScoreDisplay").textContent = player.score;
+    document.getElementById("statScore").textContent = player.score;
+
+    const totalElapsed = Date.now() - gameStartTime;
+    const totalSeconds = totalElapsed / 1000;
+
+    document.getElementById("statPieces").textContent = totalPiecesDropped;
+    const pps = totalPiecesDropped / totalSeconds;
+    document.getElementById("statPPS").textContent = pps.toFixed(2);
+    document.getElementById("statKeys").textContent = totalKeysPressed;
+    document.getElementById("statKPP").textContent = totalPiecesDropped > 0
+      ? (totalKeysPressed / totalPiecesDropped).toFixed(2)
+      : "0.00";
+    document.getElementById("statCombo").textContent = "x" + highestCombo;
+    document.getElementById("statLines").textContent = player.lines;
+    const lpm = (player.lines / (totalSeconds / 60)).toFixed(0);
+    document.getElementById("statLPM").textContent = lpm;
+
+    const backBtn = document.getElementById("completionbackMode");
+    if (backBtn) {
+      backBtn.onclick = () => window.location.href = "select-mode.html";
+    }
+
+    if (FrenzyTimerElement) {
+      FrenzyTimerElement.textContent = "0:00";
+    }
+  } else {
+    if (FrenzyTimerElement) {
+      FrenzyTimerElement.textContent = formatFrenzyTime(FrenzyTimeRemaining);
+    }
   }
+}
   
 
   const sounds = {
@@ -1061,11 +1060,7 @@ if (clearedRows.length > 0) {
     updateDebris(deltaTime);
     draw(deltaTime);
     updateScore();
-  
-    requestAnimationFrame(update);
-    timerStarted = true;
-    gameStartTime = Date.now(); 
-  
+    requestAnimationFrame(update);  
   }
 
   let pendingBind = null;

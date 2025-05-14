@@ -250,6 +250,7 @@ let lockPending = false;
 let lockResetCount = 0;
 const LOCK_DELAY_MS = 500; // Durasi delay sebelum piece dikunci (dalam milidetik)
 const MAX_LOCK_RESETS = 15;
+let isRestarting = false;
 
 
 const dasFrames = localStorage.getItem("das") !== null ? Math.round(parseFloat(localStorage.getItem("das"))) : 10;
@@ -413,22 +414,6 @@ function drawFlashLines(ctx) {
     flash.alpha -= 0.05;
   });
   flashLines = flashLines.filter(f => f.alpha > 0);
-}
-
-async function restartGame() {
-  // Hapus piece lama dari arena
-  clearPlayerFromArena();
-  draw(); // Paksa gambar ulang tanpa player matrix dulu
-  await new Promise(resolve => setTimeout(resolve, 16)); // tunggu 1 frame (60 FPS ≈ 16ms)
-
-  // Reset semua data
-  arena = createMatrix(12, 30);
-  playerReset();
-  dropTrails = [];
-  flashLines = [];
-  debrisList = [];
-
-  draw(); // Gambar ulang dengan kondisi baru
 }
 
 async function addGarbageFromTop(lines = 15, pattern = null) {
@@ -886,20 +871,18 @@ const ROWS = 30;
     player.rotationState = 0;
 
 
-    if (collide(arena, player)) {
-        if (mode !== "medi") {
-            gameOver = true;
-        } else {
-            // 🔐 Jika langsung nabrak di meditetris, batalkan reset
-            // biar tidak langsung merge dan ganti piece
-            return;
-        }
-    }
+if (collide(arena, player)) {
+  if (!isRestarting) {
+    isRestarting = true;
+    console.log("🔁 Game restarting due to collision after spawn...");
+    startRestartSequence();  // 🔧 Sekarang sudah tidak error
+  }
+  return; // ⛔ Jangan lanjut merge atau gambar tetromino
+}
 
     console.log("Player reset with piece", player.matrix);
     console.log("Player position", player.pos);
 }
-
 
   function arenaSweep() {
     let linesCleared = 0;
@@ -1045,6 +1028,7 @@ if (clearedRows.length > 0) {
   }
   
   const now = performance.now();
+
 if (now - lastGarbageTime > garbageInterval && !isPaused && !isGameOver) {
   lastGarbageTime = now;
   garbageQueue++;
@@ -1064,17 +1048,28 @@ if (now - lastGarbageTime > garbageInterval && !isPaused && !isGameOver) {
   }
 }
 
+function startRestartSequence() {
+  isGameOver = true;
+  resetGame();
+  isRestarting = false;
+  restartWithGarbage();
+}
+
 async function restartWithGarbage() {
   clearPlayerFromArena();
   arena.forEach(row => row.fill(0));
   await addGarbageFromTop(15);
 
-  playerReset();
+  playerReset(); // Spawn tetromino baru
 
   // 🔐 Cegah tetromino baru langsung merge kalau langsung nabrak
   if (mode === 'medi' && collide(arena, player)) {
-    // Geser posisi ke atas 1 baris, atau biarkan tidak digambar
-    player.pos.y = -1;
+    // Delay sebentar, lalu reset game (anggap game over)
+    setTimeout(() => {
+      isGameOver = true;
+      resetGame();
+    }, 300);
+    return;
   }
 
   hold.hasHeld = false;
@@ -1083,25 +1078,30 @@ async function restartWithGarbage() {
 
   draw();
   await new Promise(r => setTimeout(r, 100)); // delay 100ms sebelum draw()
-
 }
 
 
   
 function resetGame() {
-    controlsLocked = true;
-  
-    // Reset arena, skor, dll
-    arena.forEach(row => row.fill(0));
-    player.score = 0;
-    player.lines = 0;
-    player.level = 0;
-  
-    // Lalu setelah sedikit delay (misalnya 500ms), buka kontrol lagi
-    setTimeout(() => {
-      controlsLocked = false;
-    }, 500);
-  }
+  console.log("🧼 Reset game triggered");
+  controlsLocked = true;
+
+  arena.forEach(row => row.fill(0));
+  player.score = 0;
+  player.lines = 0;
+  player.level = 0;
+
+  playerReset();
+  console.log("🧩 Tetromino baru di-spawn");
+
+  isGameOver = false;
+
+  setTimeout(() => {
+    controlsLocked = false;
+    draw();
+    console.log("🎮 Game ready again");
+  }, 500);
+}
 
   let pendingBind = null;
 
@@ -1311,7 +1311,7 @@ function resetGame() {
   
     let now = Date.now();
     if (now - lastGarbageTime > garbageInterval) {
-      generateGarbageLine();
+      addGarbageFromTop(1);
       lastGarbageTime = now;
     }
   };

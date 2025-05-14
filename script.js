@@ -1031,6 +1031,16 @@ if (clearedRows.length > 0) {
         setTimeout(() => {
           isGameOver = true;              // ⛔ Hentikan update game loop
           timerStarted = false;           // 🛑 Hentikan timer berjalan
+          
+              // 🔇 Matikan BGM dengan cara aman
+          const bgm = window.getCurrentBGM?.();
+          if (bgm) bgm.pause();
+
+          // 🔊 Putar sound game over jika tersedia
+          if (sounds.gameover) {
+            sounds.gameover.currentTime = 0;
+            sounds.gameover.play();
+          }
           document.getElementById("completionOverlay").style.display = "flex";
           elapsedTime = performance.now() - startTime;
           document.getElementById("statTime").textContent = formatTime(elapsedTime);
@@ -1040,9 +1050,7 @@ if (clearedRows.length > 0) {
           document.getElementById("statHolds").textContent = holdCount;
           document.getElementById("statLines").textContent = player.lines;
 
-
-          
-                      // Statistik tambahan
+         // Statistik tambahan
             const totalSeconds = elapsedTime / 1000;
             const pps = totalPiecesDropped / totalSeconds;
             document.getElementById("statPPS").textContent = pps.toFixed(2);
