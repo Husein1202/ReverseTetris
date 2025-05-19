@@ -36,7 +36,6 @@ const wallkickDataNormal = {
   '0>3': [ {x:0, y:0}, {x:1, y:0}, {x:1, y:1}, {x:0, y:-2}, {x:1, y:-2} ],
 };
 
-
 // Untuk piece I
 const wallkickDataI = {
   '0>1': [ {x: 0, y: 0}, {x: -2, y: 0}, {x: 1, y: 0}, {x: -2, y: 1}, {x: 1, y: -2} ],
@@ -60,6 +59,7 @@ const wallkickDataI = {
 
 function getWallkickData(type, from, to) {
   const key = `${from}>${to}`;
+  console.log(`🔍 WallkickData for ${type} ${key}`);
   if (type === 'I') {
     return wallkickDataI[key] || [ {x:0, y:0} ];
   }
@@ -208,6 +208,7 @@ if (mode === 'solo' && !solo) {
     matrix: null,
     lines: 0,
     next: null,
+    rotation: 0,
   };
 
 let dropCounter = 0;
@@ -306,26 +307,25 @@ function createMatrix(w, h) {
     '#f0f000', // O
     '#00f000', // S
     '#f00000', // Z
-    '#888888'  // ⬅️ Garbage block
   ];
 
   
-  function createPiece(type) {
-    const pieces = {
-      'T': [[0, 0, 0], [1, 1, 1], [0, 1, 0]],
-      'O': [[2, 2], [2, 2]],
-      'L': [[0, 3, 0], [0, 3, 0], [0, 3, 3]],
-      'J': [[0, 4, 0], [0, 4, 0], [4, 4, 0]],
-      'I': [[0, 5, 0, 0], [0, 5, 0, 0], [0, 5, 0, 0], [0, 5, 0, 0]],
-      'S': [[0, 6, 6], [6, 6, 0], [0, 0, 0]],
-      'Z': [[7, 7, 0], [0, 7, 7], [0, 0, 0]],
-    };
-  
-    return {
-      matrix: pieces[type],
-      type: type
-    };
-  }
+function createPiece(type) {
+  const pieces = {
+    'T': [[0, 3, 0], [3, 3, 3], [0, 0, 0]],
+    'O': [[4, 4], [4, 4]],
+    'L': [[0, 0, 5], [5, 5, 5], [0, 0, 0]],
+    'J': [[6, 0, 0], [6, 6, 6], [0, 0, 0]],
+    'I': [[0, 0, 0, 0], [1, 1, 1, 1], [0, 0, 0, 0], [0, 0, 0, 0]],
+    'S': [[0, 2, 2], [2, 2, 0], [0, 0, 0]],
+    'Z': [[7, 7, 0], [0, 7, 7], [0, 0, 0]]
+  };
+
+  return {
+    matrix: pieces[type],
+    type: type
+  };
+}
   
   function randomType() {
     const types = 'TJLOSZI';
@@ -347,7 +347,7 @@ function getNextPiece() {
 function drawMatrix(matrix, offset, ctx, ghost = false) {
     const glowColors = {
       1: 'rgba(255, 0, 102, 0.7)',    // T
-      2: 'rgba(255, 204, 0, 0.7)',    // Oas
+      2: 'rgba(255, 204, 0, 0.7)',    // O
       3: 'rgba(255, 128, 0, 0.7)',    // L
       4: 'rgba(0, 0, 255, 0.7)',      // J
       5: 'rgba(0, 204, 255, 0.7)',    // I
@@ -637,14 +637,15 @@ function drawDebris(ctx) {
   }
   
 
-  function playerRotate() {
-    if (tryRotate(1)) {
-      if (lockPending && lockResetCount < MAX_LOCK_RESETS) {
-        lockResetCount++;
-        startLockDelay();
-      }
+function playerRotate() {
+  if (tryRotate(1)) {
+    rotatedLast = true;
+    if (lockPending && lockResetCount < MAX_LOCK_RESETS) {
+      lockResetCount++;
+      startLockDelay();
     }
   }
+}
 
   function rotateMatrix(matrix, direction = 1) {
     const newMatrix = matrix.map(row => [...row]);
@@ -667,111 +668,153 @@ function drawDebris(ctx) {
     return rotated;
   }
     
-  function isValidPlacement(matrix, pos, arena) {
-    for (let y = 0; y < matrix.length; ++y) {
-      for (let x = 0; x < matrix[y].length; ++x) {
-        if (matrix[y][x] !== 0) {
-          const ay = y + pos.y;
-          const ax = x + pos.x;
-          if (
-            ay < 0 || ay >= arena.length ||
-            ax < 0 || ax >= arena[0].length ||
-            arena[ay][ax] !== 0 // ⬅️ termasuk garbage line (8) sebagai tidak valid
-          ) {
-            return false;
-          }
+function isValidPlacement(matrix, pos, arena) {
+  for (let y = 0; y < matrix.length; ++y) {
+    for (let x = 0; x < matrix[y].length; ++x) {
+      if (matrix[y][x] !== 0) {
+        const ay = y + pos.y;
+        const ax = x + pos.x;
+
+        // ❌ Posisi terlalu kiri/kanan/bawah → ditolak
+        if (
+          ax < 0 || ax >= arena[0].length ||
+          ay < 0 || ay >= arena.length
+        )
+        {
+          console.log(`❌ OOB @ [${x},${y}] → arena[${ay},${ax}]`);
+          return false;
+        }
+
+        // ❌ Tabrakan dengan blok lain → ditolak
+        if (ay >= 0 && arena[ay][ax] !== 0) {
+          console.log(`❌ Collision @ [${x},${y}] → arena[${ay},${ax}] = ${arena[ay][ax]}`);
+          return false;
         }
       }
     }
-    return true;
   }
+  return true;
+}
   
-  
-  function tryRotate(direction = 1) {
-    const from = player.rotationState;
-    const to = (from + direction + 4) % 4;
-  
-    const testMatrix = rotateMatrix(player.matrix, direction);
-    const kicks = getWallkickData(player.type, from, to);
-  
-    for (const offset of kicks) {
-      const testPos = {
-        x: player.pos.x + offset.x,
-        y: player.pos.y + offset.y,
-      };
-  
-      if (isValidPlacement(testMatrix, testPos, arena)) {
-        player.matrix = testMatrix;
-        player.pos = testPos;
-        player.rotationState = to;
-  
-        sounds.rotate.currentTime = 0;
-        sounds.rotate.play();
-        rotatedLast = true;
-        return true;
-      }
-    }
-  
+function tryRotate(direction) {
+
+    if (!player.type || typeof player.rotation !== "number") {
+    console.warn("🚫 Rotasi diblok: player belum siap", player);
     return false;
   }
-    
-  function tryRotate180() {
-    const from = player.rotationState;
-    const to = (from + 2) % 4;
-  
-    const originalMatrix = JSON.parse(JSON.stringify(player.matrix));
-    const originalPos = { x: player.pos.x, y: player.pos.y };
-  
-    // Buat matrix baru hasil rotasi 180 (tanpa mutasi langsung)
-    const testMatrix = originalMatrix.map(row => [...row]).reverse().map(row => row.reverse());
-  
-    const kicks = getWallkickData(player.type, from, to);
-  
-    for (const offset of wallkick180Offsets) {
-      const testPos = {
-        x: originalPos.x + offset.x,
-        y: originalPos.y + offset.y,
-      };
-  
-      if (!collide(arena, { matrix: testMatrix, pos: testPos })) {
-        player.matrix = testMatrix;
-        player.pos = testPos;
-        player.rotationState = to;
-        sounds.rotate.currentTime = 0;
-        sounds.rotate.play();
-        rotatedLast = true;
-        return true;
-      }
+
+  const originalMatrix = player.matrix;
+  const rotatedMatrix = rotateMatrix(player.matrix, direction);
+  const from = player.rotation ?? 0;
+  const to = (player.rotation + direction + 4) % 4;
+  const kicks = getWallkickData(player.type, from, to);
+
+  for (let i = 0; i < kicks.length; i++) {
+    const offset = kicks[i];
+    const testPos = {
+      x: player.pos.x + offset.x,
+      y: player.pos.y + offset.y,
+    };
+
+    if (isValidPlacement(rotatedMatrix, testPos, arena)) {
+      player.matrix = rotatedMatrix.map(row => [...row]);
+      player.pos = { ...testPos };
+      player.rotation = to;
+      rotatedLast = true;
+
+       // 🔍 Integrasi T-Spin setelah rotasi
+      return true;
     }
   }
-  function playerRotateCW() {
-    if (tryRotate(1)) {
-      if (lockPending && lockResetCount < MAX_LOCK_RESETS) {
-        lockResetCount++;
-        startLockDelay();
-      }
+  return false;
+}
+
+function tryRotate180() {
+  const originalMatrix = player.matrix;
+  const rotatedMatrix = rotateMatrix(player.matrix, 2);
+  const from = player.rotation ?? 0;
+  const to = (player.rotation + 2) % 4;
+  const kicks = getWallkickData(player.type, from, to);
+
+  for (let i = 0; i < kicks.length; i++) {
+    const offset = kicks[i];
+    const testPos = {
+      x: player.pos.x + offset.x,
+      y: player.pos.y + offset.y,
+    };
+
+    if (isValidPlacement(rotatedMatrix, testPos, arena)) {
+      player.matrix = rotatedMatrix.map(row => [...row]);
+      player.pos = { ...testPos };
+      player.rotation = to;
+      rotatedLast = true;
+
+       // 🔍 Integrasi T-Spin
+      return true;
     }
   }
-  
-  function playerRotateCCW() {
-    if (tryRotate(-1)) {
-      if (lockPending && lockResetCount < MAX_LOCK_RESETS) {
-        lockResetCount++;
-        startLockDelay();
-      }
+  return false;
+}
+
+window.detectTSpinType = function(player, arena, linesCleared, rotatedLast) {
+  if (player.type !== 'T' || !rotatedLast) return null;
+
+  const centerX = player.pos.x + 1;
+  const centerY = player.pos.y + 1;
+
+  const corners = [
+    arena[centerY - 1]?.[centerX - 1], // top-left
+    arena[centerY - 1]?.[centerX + 1], // top-right
+    arena[centerY + 1]?.[centerX - 1], // bottom-left
+    arena[centerY + 1]?.[centerX + 1], // bottom-right
+  ];
+
+  const occupied = corners.filter(cell => cell && cell !== 0).length;
+
+  if (occupied >= 3) {
+    return linesCleared > 0 ? "T-SPIN" : "T-SPIN NO CLEAR";
+  } else if (linesCleared === 1) {
+    return "T-SPIN MINI";
+  }
+
+  return null;
+};
+
+function playerRotateCW() {
+  if (tryRotate(1)) {
+    if (lockPending && lockResetCount < MAX_LOCK_RESETS) {
+      lockResetCount++;
+      startLockDelay();
     }
   }
-  
-  function playerRotate180() {
-    if (tryRotate180()) {
-      if (lockPending && lockResetCount < MAX_LOCK_RESETS) {
-        lockResetCount++;
-        startLockDelay();
-      }
+}
+
+function playerRotateCW() {
+  if (tryRotate(1)) {
+    rotatedLast = true;
+
+    // 🔊 Putar suara rotasi
+    if (sounds.rotate) {
+      const sfx = sounds.rotate.cloneNode();
+      sfx.volume = sounds.rotate.volume;
+      sfx.play();
+    }
+
+    if (lockPending && lockResetCount < MAX_LOCK_RESETS) {
+      lockResetCount++;
+      startLockDelay();
     }
   }
-    // Menggabungkan posisi tetromino aktif ke papan permanen //
-    
+}
+
+function playerRotate180() {
+  if (tryRotate180()) {
+    if (lockPending && lockResetCount < MAX_LOCK_RESETS) {
+      lockResetCount++;
+      startLockDelay();
+    }
+  }
+}    
   function merge(arena, player) {
     player.matrix.forEach((row, y) => {
       row.forEach((value, x) => {
@@ -840,7 +883,7 @@ const ROWS = 30;
     
     player.pos.y = arena.length - player.matrix.length;
     player.pos.x = (arena[0].length / 2 | 0) - (player.matrix[0].length / 2 | 0);
-    player.rotationState = 0;
+    player.rotation = 0;
 
 
 if (collide(arena, player)) {
@@ -856,73 +899,73 @@ if (collide(arena, player)) {
     console.log("Player position", player.pos);
 }
 
-  function arenaSweep() {
-    let linesCleared = 0;
-    const clearedRows = [];
-    for (let y = 0; y < arena.length; ++y) {
-      if (arena[y].every(cell => cell !== 0)) {
-        clearedRows.push(y);            // ✅ SIMPAN BARIS YANG DICLEAR
-        arena.splice(y, 1);
-        arena.push(new Array(arena[0].length).fill(0));
-        linesCleared++;
-        y--;
-      }
+function arenaSweep() {
+  let linesCleared = 0;
+  const clearedRows = [];
+  for (let y = 0; y < arena.length; ++y) {
+    if (arena[y].every(cell => cell !== 0)) {
+      clearedRows.push(y);            // ✅ SIMPAN BARIS YANG DICLEAR
+      arena.splice(y, 1);
+      arena.push(new Array(arena[0].length).fill(0));
+      linesCleared++;
+      y--;
     }
-  
+  }
 
-    // Tambahkan efek hanya pada baris yang dihapus
-if (clearedRows.length > 0) {
-  clearedRows.forEach(rowY => {
-    triggerFlash(rowY);   // Flash hanya di baris yang di-clear
-    spawnDebris(rowY);    // Debris jatuh di baris itu juga
-  });
-}
-    if (linesCleared > 0) {
-      triggerFlash(); 
-      const tspinType = detectTSpinType(player, arena, linesCleared, rotatedLast);
-      if (tspinType) {
-        congratsText.textContent = tspinType;
-      }      rotatedLast = false;
+  // Tambahkan efek hanya pada baris yang dihapus
+  if (clearedRows.length > 0) {
+    clearedRows.forEach(rowY => {
+      triggerFlash(rowY);   // Flash hanya di baris yang di-clear
+      spawnDebris(rowY);    // Debris jatuh di baris itu juga
+    });
+  }
 
-      comboCount += linesCleared;
-      if (comboCount > highestCombo) highestCombo = comboCount;
+  if (linesCleared > 0) {
+    triggerFlash(); 
+    const tspinType = window.detectTSpinType(player, arena, linesCleared, rotatedLast);
+    rotatedLast = false;
 
-      showComboTitle(linesCleared);
-      const soundId = `combo${Math.min(comboCount, 16)}`;
-      if (sounds[soundId]) {
-        sounds[soundId].currentTime = 0;
-        sounds[soundId].play();
-      }
-
-      comboDisplay.textContent = `Combo x${comboCount}!`;
-      comboDisplay.style.opacity = 1;
-      clearTimeout(comboDisplayTimeout);
-      comboDisplayTimeout = setTimeout(() => {
-        comboDisplay.style.opacity = 0;
-      }, 1000);
-
-      sounds.lineclear.currentTime = 0;
-      sounds.lineclear.play();
-
+    if (tspinType) {
+      congratsText.textContent = tspinType;
+    } else {
       const phrase = phrases[Math.floor(Math.random() * phrases.length)];
       congratsText.textContent = phrase;
+    }
 
-      player.lines += linesCleared;
-if (mode?.includes("medi")) {
-  console.log("✨ Calling score update...");
-  updateMeditetrisScore(linesCleared);
+    comboCount += linesCleared;
+    if (comboCount > highestCombo) highestCombo = comboCount;
+
+    showComboTitle(linesCleared);
+    const soundId = `combo${Math.min(comboCount, 16)}`;
+    if (sounds[soundId]) {
+      sounds[soundId].currentTime = 0;
+      sounds[soundId].play();
+    }
+
+    comboDisplay.textContent = `Combo x${comboCount}!`;
+    comboDisplay.style.opacity = 1;
+    clearTimeout(comboDisplayTimeout);
+    comboDisplayTimeout = setTimeout(() => {
+      comboDisplay.style.opacity = 0;
+    }, 1000);
+
+    sounds.lineclear.currentTime = 0;
+    sounds.lineclear.play();
+
+    player.lines += linesCleared;
+    if (mode?.includes("medi")) {
+      console.log("✨ Calling score update...");
+      updateMeditetrisScore(linesCleared);
+    }
+  } else {
+    if (comboCount > 0) {
+      comboCount = 0;
+      sounds.comboBreak.currentTime = 0;
+      sounds.comboBreak.play();
+      comboDisplay.style.opacity = 0;
+    }
+  }
 }
-
-
-    } else {
-      if (comboCount > 0) {
-        comboCount = 0;
-        sounds.comboBreak.currentTime = 0;
-        sounds.comboBreak.play();
-        comboDisplay.style.opacity = 0;
-      }
-    }
-    }
 
 function updateMeditetrisScore(linesCleared) {
   
@@ -1081,121 +1124,125 @@ function resetGame() {
     });
   });
   
-  window.addEventListener("keydown", (e) => {
-    
-    if (!pendingBind) return;
-  
-    const slot = pendingBind.dataset.slot;
-    const action = pendingBind.dataset.action;
-    const key = e.key.toLowerCase();
-  
-    let saved = JSON.parse(localStorage.getItem(`customControlsSlot${slot}`)) || { ...defaultControls };
-  
-    const existing = saved[action] ? saved[action].split("|") : [];
-    if (!existing.includes(key)) {
-      existing.push(key);
-    }
-  
-    saved[action] = existing.join("|");
-    localStorage.setItem(`customControlsSlot${slot}`, JSON.stringify(saved));
-  
-    pendingBind.textContent = saved[action];
-    pendingBind = null;
-  });
-  
-  document.addEventListener('keydown', (e) => {
-    const key = e.key.toLowerCase();
-    const action = activeKeyBindings[key];
-  
-    if (action === "exit") {
-      // ⛔ Kalau lagi hold, JANGAN langsung exit
-      if (escHoldTimeout) return;
-      window.location.href = "select-mode.html";
-      return;
-    }
-    
-    const keysToPrevent = [" ", "arrowup", "arrowdown", "arrowleft", "arrowright", "escape"];
-    if (keysToPrevent.includes(key)) {
-      e.preventDefault();
-    }
-  
-    if (!isPaused || key === 'p') {
-      switch (action) {
-        case 'left':
-          if (!e.repeat) {
-            playerMove(-1);
-            tapLeft = true;
-          }
-          moveHoldDir = -1;
-          moveFrameCounter = dasFrames;
-          initialMovePending = true;
-          break;
-  
-        case 'right':
-          if (!e.repeat) {
-            playerMove(1);
-            tapRight = true;
-          }
-          moveHoldDir = 1;
-          moveFrameCounter = dasFrames;
-          initialMovePending = true;
-          break;
-  
-        case 'softdrop':
-          if (!isSoftDropping) isSoftDropping = true;
-          break;
-  
-        case 'harddrop':
-          playerHardDrop();
-          rotatedLast = false;
-          break;
-  
-        case 'cw':
-          playerRotate();
-          break;
-  
-        case 'ccw':
-          playerRotate(); playerRotate(); playerRotate();
-          break;
-  
-        case 'rotate180':
-          playerRotate(); playerRotate();
-          break;
-  
-        case 'hold':
-          holdPiece();
-          break;
-      }
-  
-      // 🛠️ Fallback: Space bar tidak terbaca oleh activeKeyBindings
-      if ((e.key === " " || e.code === "Space") && !action) {
-        e.preventDefault();
+  const pressedKeys = new Set();
+
+window.addEventListener("keydown", (e) => {
+  if (!pendingBind) return;
+
+  const slot = pendingBind.dataset.slot;
+  const action = pendingBind.dataset.action;
+  const key = e.key.toLowerCase();
+
+  let saved = JSON.parse(localStorage.getItem(`customControlsSlot${slot}`)) || { ...defaultControls };
+
+  const existing = saved[action] ? saved[action].split("|") : [];
+  if (!existing.includes(key)) {
+    existing.push(key);
+  }
+
+  saved[action] = existing.join("|");
+  localStorage.setItem(`customControlsSlot${slot}`, JSON.stringify(saved));
+
+  pendingBind.textContent = saved[action];
+  pendingBind = null;
+});  
+
+document.addEventListener('keydown', (e) => {
+  const key = e.key.toLowerCase();
+  if (pressedKeys.has(key)) return;
+  pressedKeys.add(key);
+
+  const action = activeKeyBindings[key];
+  if (!player.matrix || !player.type) return;
+
+  if (action === "exit") {
+    if (escHoldTimeout) return;
+    window.location.href = "select-mode.html";
+    return;
+  }
+
+  const keysToPrevent = [" ", "arrowup", "arrowdown", "arrowleft", "arrowright", "escape"];
+  if (keysToPrevent.includes(key)) {
+    e.preventDefault();
+  }
+
+  if (!isPaused || key === 'p') {
+    switch (action) {
+      case 'left':
+        if (!e.repeat) {
+          playerMove(-1);
+          tapLeft = true;
+        }
+        moveHoldDir = -1;
+        moveFrameCounter = dasFrames;
+        initialMovePending = true;
+        break;
+
+      case 'right':
+        if (!e.repeat) {
+          playerMove(1);
+          tapRight = true;
+        }
+        moveHoldDir = 1;
+        moveFrameCounter = dasFrames;
+        initialMovePending = true;
+        break;
+
+      case 'softdrop':
+        if (!isSoftDropping) isSoftDropping = true;
+        break;
+
+      case 'harddrop':
         playerHardDrop();
         rotatedLast = false;
-      }
+        break;
+
+      case 'cw':
+        playerRotateCW();
+        break;
+
+      case 'ccw':
+        playerRotateCCW();
+        break;
+
+      case 'rotate180':
+        playerRotate180();
+        break;
+
+      case 'hold':
+        holdPiece();
+        break;
     }
-  
-    totalKeysPressed++;
-  });
-              
-  document.addEventListener("keyup", (e) => {
-    const key = e.key.toLowerCase();
-    const action = activeKeyBindings[key];
-  
-    if (action === "left") {
-      moveHoldDir = 0;
-      initialMovePending = false;
-      tapLeft = false;
-  
-    } else if (action === "right") {
-      moveHoldDir = 0;
-      initialMovePending = false;
-      tapRight = false;
-  
-    } else if (action === "softdrop") {
-      isSoftDropping = false;
+
+    if ((e.key === " " || e.code === "Space") && !action) {
+      e.preventDefault();
+      playerHardDrop();
+      rotatedLast = false;
     }
-  });
+  }
+
+  totalKeysPressed++;
+});
+
+document.addEventListener("keyup", (e) => {
+  const key = e.key.toLowerCase();
+  pressedKeys.delete(key);
+
+  const action = activeKeyBindings[key];
+  if (action === "left") {
+    moveHoldDir = 0;
+    initialMovePending = false;
+    tapLeft = false;
+
+  } else if (action === "right") {
+    moveHoldDir = 0;
+    initialMovePending = false;
+    tapRight = false;
+
+  } else if (action === "softdrop") {
+    isSoftDropping = false;
+  }
+});
 
   pauseButton.onclick = () => {
     isPaused = !isPaused;
@@ -1318,6 +1365,7 @@ startCountdown(); // jangan ada baris lain setelah ini (seperti update() atau pl
   };
   
   function holdPiece() {
+    
     holdCount++;
 
     if (hold.hasHeld) return;

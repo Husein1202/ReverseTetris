@@ -4,14 +4,17 @@ let trailPieces = [];
 let activeTrails = [];
 
 const wallkickDataNormal = {
-  '0>1': [ {x: 0, y: 0}, {x: -1, y: 0}, {x: -1, y: 1}, {x: 0, y: -2}, {x: -1, y: -2} ],
-  '1>0': [ {x: 0, y: 0}, {x: 1, y: 0}, {x: 1, y: -1}, {x: 0, y: 2}, {x: 1, y: 2} ],
-  '1>2': [ {x: 0, y: 0}, {x: 1, y: 0}, {x: 1, y: -1}, {x: 0, y: 2}, {x: 1, y: 2} ],
-  '2>1': [ {x: 0, y: 0}, {x: -1, y: 0}, {x: -1, y: 1}, {x: 0, y: -2}, {x: -1, y: -2} ],
-  '2>3': [ {x: 0, y: 0}, {x: 1, y: 0}, {x: 1, y: 1}, {x: 0, y: -2}, {x: 1, y: -2} ],
-  '3>2': [ {x: 0, y: 0}, {x: -1, y: 0}, {x: -1, y: -1}, {x: 0, y: 2}, {x: -1, y: 2} ],
-  '3>0': [ {x: 0, y: 0}, {x: -1, y: 0}, {x: -1, y: -1}, {x: 0, y: 2}, {x: -1, y: 2} ],
-  '0>3': [ {x: 0, y: 0}, {x: 1, y: 0}, {x: 1, y: 1}, {x: 0, y: -2}, {x: 1, y: -2} ],
+  '0>1': [ {x:0, y:0}, {x:-1, y:0}, {x:-1, y:1}, {x:0, y:-2}, {x:-1, y:-2} ],
+  '1>0': [ {x:0, y:0}, {x:1, y:0}, {x:1, y:-1}, {x:0, y:2}, {x:1, y:2} ],
+
+  '1>2': [ {x:0, y:0}, {x:1, y:0}, {x:1, y:-1}, {x:0, y:2}, {x:1, y:2} ],
+  '2>1': [ {x:0, y:0}, {x:-1, y:0}, {x:-1, y:1}, {x:0, y:-2}, {x:-1, y:-2} ],
+
+  '2>3': [ {x:0, y:0}, {x:1, y:0}, {x:1, y:1}, {x:0, y:-2}, {x:1, y:-2} ],
+  '3>2': [ {x:0, y:0}, {x:-1, y:0}, {x:-1, y:-1}, {x:0, y:2}, {x:-1, y:2} ],
+
+  '3>0': [ {x:0, y:0}, {x:-1, y:0}, {x:-1, y:-1}, {x:0, y:2}, {x:-1, y:2} ],
+  '0>3': [ {x:0, y:0}, {x:1, y:0}, {x:1, y:1}, {x:0, y:-2}, {x:1, y:-2} ],
 };
 
 const wallkickDataI = {
@@ -373,21 +376,26 @@ const pps = totalPiecesDropped / totalSeconds;
     }
   }
 
-  function createPiece(type) {
-    const pieces = {
-      'T': [[0, 0, 0], [1, 1, 1], [0, 1, 0]],
-      'O': [[2, 2], [2, 2]],
-      'L': [[0, 3, 0], [0, 3, 0], [0, 3, 3]],
-      'J': [[0, 4, 0], [0, 4, 0], [4, 4, 0]],
-      'I': [[0, 5, 0, 0], [0, 5, 0, 0], [0, 5, 0, 0], [0, 5, 0, 0]],
-      'S': [[0, 6, 6], [6, 6, 0], [0, 0, 0]],
-      'Z': [[7, 7, 0], [0, 7, 7], [0, 0, 0]],
-    };
+function createPiece(type) {
+  const pieces = {
+    'T': [[0, 3, 0], [3, 3, 3], [0, 0, 0]],
+    'O': [[4, 4], [4, 4]],
+    'L': [[0, 0, 5], [5, 5, 5], [0, 0, 0]],
+    'J': [[6, 0, 0], [6, 6, 6], [0, 0, 0]],
+    'I': [[0, 0, 0, 0], [1, 1, 1, 1], [0, 0, 0, 0], [0, 0, 0, 0]],
+    'S': [[0, 2, 2], [2, 2, 0], [0, 0, 0]],
+    'Z': [[7, 7, 0], [0, 7, 7], [0, 0, 0]]
+  };
+
+  return {
+    matrix: pieces[type],
+    type: type
+  };
+}
   
-    return {
-      matrix: pieces[type],
-      type: type
-    };
+  function randomType() {
+    const types = 'TJLOSZI';
+    return types[Math.floor(Math.random() * types.length)];
   }
   
   let bag = [];
@@ -660,91 +668,150 @@ function drawDebris(ctx) {
     arrTimer = null;
   }
   
+  function playerRotate() {
+  if (tryRotate(1)) {
+    rotatedLast = true;
+    if (lockPending && lockResetCount < MAX_LOCK_RESETS) {
+      lockResetCount++;
+      startLockDelay();
+    }
+  }
+}
+
 
   function rotateMatrix(matrix, direction = 1) {
     const newMatrix = matrix.map(row => [...row]);
-  
     for (let y = 0; y < newMatrix.length; ++y) {
       for (let x = 0; x < y; ++x) {
         [newMatrix[x][y], newMatrix[y][x]] = [newMatrix[y][x], newMatrix[x][y]];
       }
     }
-  
     if (direction > 0) {
       newMatrix.forEach(row => row.reverse());
     } else {
       newMatrix.reverse();
     }
-  
     return newMatrix;
   }
-    
+  
   function rotateMatrix180(matrix) {
     const rotated = matrix.map(row => [...row]).reverse();
     rotated.forEach(row => row.reverse());
     return rotated;
   }
     
-  function tryRotate(direction = 1) {
-    const from = player.rotationState;
-    const to = (from + direction + 4) % 4;
-  
-    const testMatrix = rotateMatrix(player.matrix, direction);
-    const kicks = getWallkickData(player.type, from, to);
-  
-    for (const offset of kicks) {
-      const testPos = {
-        x: player.pos.x + offset.x,
-        y: player.pos.y + offset.y,
-      };
-  
-      // ✅ Uji testMatrix dan testPos tanpa menyentuh player langsung
-      if (!collide(arena, { matrix: testMatrix, pos: testPos })) {
-        player.matrix = testMatrix.map(row => [...row]); // salin beneran
-        player.pos = { ...testPos };
-        player.rotationState = to;
-  
-        sounds.rotate.currentTime = 0;
-        sounds.rotate.play();
-        rotatedLast = true;
-        return true;
+function isValidPlacement(matrix, pos, arena) {
+  for (let y = 0; y < matrix.length; ++y) {
+    for (let x = 0; x < matrix[y].length; ++x) {
+      if (matrix[y][x] !== 0) {
+        const ay = y + pos.y;
+        const ax = x + pos.x;
+
+        // ❌ Posisi terlalu kiri/kanan/bawah → ditolak
+        if (
+          ax < 0 || ax >= arena[0].length ||
+          ay < 0 || ay >= arena.length
+        )
+        {
+          console.log(`❌ OOB @ [${x},${y}] → arena[${ay},${ax}]`);
+          return false;
+        }
+
+        // ❌ Tabrakan dengan blok lain → ditolak
+        if (ay >= 0 && arena[ay][ax] !== 0) {
+          console.log(`❌ Collision @ [${x},${y}] → arena[${ay},${ax}] = ${arena[ay][ax]}`);
+          return false;
+        }
       }
     }
-  
+  }
+  return true;
+}
+    
+function tryRotate(direction) {
+
+    if (!player.type || typeof player.rotation !== "number") {
+    console.warn("🚫 Rotasi diblok: player belum siap", player);
     return false;
   }
-    
-  function tryRotate180() {
-    const from = player.rotationState;
-    const to = (from + 2) % 4;
-  
-    const originalMatrix = JSON.parse(JSON.stringify(player.matrix));
-    const originalPos = { x: player.pos.x, y: player.pos.y };
-  
-    // Buat matrix baru hasil rotasi 180 (tanpa mutasi langsung)
-    const testMatrix = originalMatrix.map(row => [...row]).reverse().map(row => row.reverse());
-  
-    const kicks = getWallkickData(player.type, from, to);
-  
-    for (const offset of wallkick180Offsets) {
-      const testPos = {
-        x: originalPos.x + offset.x,
-        y: originalPos.y + offset.y,
-      };
-  
-      if (!collide(arena, { matrix: testMatrix, pos: testPos })) {
-        player.matrix = testMatrix;
-        player.pos = testPos;
-        player.rotationState = to;
-        sounds.rotate.currentTime = 0;
-        sounds.rotate.play();
-        rotatedLast = true;
-        return true;
-      }
+
+  const originalMatrix = player.matrix;
+  const rotatedMatrix = rotateMatrix(player.matrix, direction);
+  const from = player.rotation ?? 0;
+  const to = (player.rotation + direction + 4) % 4;
+  const kicks = getWallkickData(player.type, from, to);
+
+  for (let i = 0; i < kicks.length; i++) {
+    const offset = kicks[i];
+    const testPos = {
+      x: player.pos.x + offset.x,
+      y: player.pos.y + offset.y,
+    };
+
+    if (isValidPlacement(rotatedMatrix, testPos, arena)) {
+      player.matrix = rotatedMatrix.map(row => [...row]);
+      player.pos = { ...testPos };
+      player.rotation = to;
+      rotatedLast = true;
+
+       // 🔍 Integrasi T-Spin setelah rotasi
+      return true;
     }
   }
+  return false;
+}
+    
+function tryRotate180() {
+  const originalMatrix = player.matrix;
+  const rotatedMatrix = rotateMatrix(player.matrix, 2);
+  const from = player.rotation ?? 0;
+  const to = (player.rotation + 2) % 4;
+  const kicks = getWallkickData(player.type, from, to);
 
-// CW rotation
+  for (let i = 0; i < kicks.length; i++) {
+    const offset = kicks[i];
+    const testPos = {
+      x: player.pos.x + offset.x,
+      y: player.pos.y + offset.y,
+    };
+
+    if (isValidPlacement(rotatedMatrix, testPos, arena)) {
+      player.matrix = rotatedMatrix.map(row => [...row]);
+      player.pos = { ...testPos };
+      player.rotation = to;
+      rotatedLast = true;
+
+       // 🔍 Integrasi T-Spin
+      return true;
+    }
+  }
+  return false;
+}
+
+window.detectTSpinType = function(player, arena, linesCleared, rotatedLast) {
+  if (player.type !== 'T' || !rotatedLast) return null;
+
+  const centerX = player.pos.x + 1;
+  const centerY = player.pos.y + 1;
+
+  const corners = [
+    arena[centerY - 1]?.[centerX - 1], // top-left
+    arena[centerY - 1]?.[centerX + 1], // top-right
+    arena[centerY + 1]?.[centerX - 1], // bottom-left
+    arena[centerY + 1]?.[centerX + 1], // bottom-right
+  ];
+
+  const occupied = corners.filter(cell => cell && cell !== 0).length;
+
+  if (occupied >= 3) {
+    return linesCleared > 0 ? "T-SPIN" : "T-SPIN NO CLEAR";
+  } else if (linesCleared === 1) {
+    return "T-SPIN MINI";
+  }
+
+  return null;
+};
+
 function playerRotateCW() {
   if (tryRotate(1)) {
     if (lockPending && lockResetCount < MAX_LOCK_RESETS) {
@@ -754,7 +821,6 @@ function playerRotateCW() {
   }
 }
 
-// CCW rotation
 function playerRotateCCW() {
   if (tryRotate(-1)) {
     if (lockPending && lockResetCount < MAX_LOCK_RESETS) {
@@ -764,7 +830,6 @@ function playerRotateCCW() {
   }
 }
 
-// 180° rotation
 function playerRotate180() {
   if (tryRotate180()) {
     if (lockPending && lockResetCount < MAX_LOCK_RESETS) {
@@ -772,16 +837,7 @@ function playerRotate180() {
       startLockDelay();
     }
   }
-}
-
-  function playerRotate() {
-    if (tryRotate(1)) {
-      if (lockPending && lockResetCount < MAX_LOCK_RESETS) {
-        lockResetCount++;
-        startLockDelay();
-      }
-    }
-  }
+}    
     
   function startLockDelay() {
     if (lockTimeout) clearTimeout(lockTimeout);
@@ -841,53 +897,33 @@ function playerRotate180() {
 
   function playerReset() {
     const pieces = 'TJLOSZI';
-if (!player.next) {
-  player.next = getNextPiece();
-}
-const next = player.next;
-player.next = getNextPiece();
-
-player.matrix = next.matrix;
-player.type = next.type;
+    
+    if (!player.next) {
+      player.next = getNextPiece();
+    }
+    const next = player.next;
+    player.next = getNextPiece();
+    
+    player.matrix = next.matrix;
+    player.type = next.type;
+    
     player.pos.y = arena.length - player.matrix.length;
     player.pos.x = (arena[0].length / 2 | 0) - (player.matrix[0].length / 2 | 0);
-    player.rotationState = 0;
+    player.rotation = 0;
 
-    if (collide(arena, player)) {
-      if (!isGameOver) {
-        completionOverlay.style.display = 'flex';
-        sounds.gameover.currentTime = 0;
-        sounds.gameover.play();
-        sounds.gameOverAlt.currentTime = 0;
-        sounds.gameOverAlt.play();
-        isGameOver = true;
-      // Save recent solo score
-      const recentScores = JSON.parse(localStorage.getItem("soloRecentScores") || "[]");
-      recentScores.unshift({ name: nickname, score: player.score });
-      if (recentScores.length > 5) recentScores.pop();
-      localStorage.setItem("soloRecentScores", JSON.stringify(recentScores));
 
-      // Display them
-      const list = document.getElementById("leaderboardList");
-      if (list) {
-        list.innerHTML = "";
-        recentScores.forEach(entry => {
-          const li = document.createElement("li");
-          li.textContent = `${entry.name} - ${entry.score}`;
-          if (entry.name === nickname && entry.score === player.score) {
-            li.style.color = "#FFD700";
-            li.style.fontWeight = "bold";
-          }
-          list.appendChild(li);
-        });
-      }
-
-      }
-      return;
-    }
-    totalPiecesDropped++;
-
+if (collide(arena, player)) {
+  if (!isRestarting) {
+    isRestarting = true;
+    console.log("🔁 Game restarting due to collision after spawn...");
+    startRestartSequence();  // 🔧 Sekarang sudah tidak error
   }
+  return; // ⛔ Jangan lanjut merge atau gambar tetromino
+}
+
+    console.log("Player reset with piece", player.matrix);
+    console.log("Player position", player.pos);
+}
 
   function arenaSweep() {
     let linesCleared = 0;
@@ -915,7 +951,7 @@ if (clearedRows.length > 0) {
   
     if (linesCleared > 0) {
       triggerFlash(); 
-      const tspinType = detectTSpinType(player, arena, linesCleared, rotatedLast);
+      const tspinType = window.detectTSpinType(player, arena, linesCleared, rotatedLast);
       if (tspinType) {
         congratsText.textContent = tspinType;
       }      rotatedLast = false;
@@ -1078,121 +1114,125 @@ if (clearedRows.length > 0) {
     });
   });
   
-  window.addEventListener("keydown", (e) => {
-    
-    if (!pendingBind) return;
-  
-    const slot = pendingBind.dataset.slot;
-    const action = pendingBind.dataset.action;
-    const key = e.key.toLowerCase();
-  
-    let saved = JSON.parse(localStorage.getItem(`customControlsSlot${slot}`)) || { ...defaultControls };
-  
-    const existing = saved[action] ? saved[action].split("|") : [];
-    if (!existing.includes(key)) {
-      existing.push(key);
-    }
-  
-    saved[action] = existing.join("|");
-    localStorage.setItem(`customControlsSlot${slot}`, JSON.stringify(saved));
-  
-    pendingBind.textContent = saved[action];
-    pendingBind = null;
-  });
-  
-  document.addEventListener('keydown', (e) => {
-    const key = e.key.toLowerCase();
-    const action = activeKeyBindings[key];
-  
-    if (action === "exit") {
-      // ⛔ Kalau lagi hold, JANGAN langsung exit
-      if (escHoldTimeout) return;
-      window.location.href = "select-mode.html";
-      return;
-    }
-    
-    const keysToPrevent = [" ", "arrowup", "arrowdown", "arrowleft", "arrowright", "escape"];
-    if (keysToPrevent.includes(key)) {
-      e.preventDefault();
-    }
-  
-    if (!isPaused || key === 'p') {
-      switch (action) {
-        case 'left':
-          if (!e.repeat) {
-            playerMove(-1);
-            tapLeft = true;
-          }
-          moveHoldDir = -1;
-          moveFrameCounter = dasFrames;
-          initialMovePending = true;
-          break;
-  
-        case 'right':
-          if (!e.repeat) {
-            playerMove(1);
-            tapRight = true;
-          }
-          moveHoldDir = 1;
-          moveFrameCounter = dasFrames;
-          initialMovePending = true;
-          break;
-  
-        case 'softdrop':
-          if (!isSoftDropping) isSoftDropping = true;
-          break;
-  
-        case 'harddrop':
-          playerHardDrop();
-          rotatedLast = false;
-          break;
-  
-        case 'cw':
-          playerRotate();
-          break;
-  
-        case 'ccw':
-          playerRotate(); playerRotate(); playerRotate();
-          break;
-  
-        case 'rotate180':
-          playerRotate(); playerRotate();
-          break;
-  
-        case 'hold':
-          holdPiece();
-          break;
-      }
-  
-      // 🛠️ Fallback: Space bar tidak terbaca oleh activeKeyBindings
-      if ((e.key === " " || e.code === "Space") && !action) {
-        e.preventDefault();
+  const pressedKeys = new Set();
+
+window.addEventListener("keydown", (e) => {
+  if (!pendingBind) return;
+
+  const slot = pendingBind.dataset.slot;
+  const action = pendingBind.dataset.action;
+  const key = e.key.toLowerCase();
+
+  let saved = JSON.parse(localStorage.getItem(`customControlsSlot${slot}`)) || { ...defaultControls };
+
+  const existing = saved[action] ? saved[action].split("|") : [];
+  if (!existing.includes(key)) {
+    existing.push(key);
+  }
+
+  saved[action] = existing.join("|");
+  localStorage.setItem(`customControlsSlot${slot}`, JSON.stringify(saved));
+
+  pendingBind.textContent = saved[action];
+  pendingBind = null;
+});  
+
+document.addEventListener('keydown', (e) => {
+  const key = e.key.toLowerCase();
+  if (pressedKeys.has(key)) return;
+  pressedKeys.add(key);
+
+  const action = activeKeyBindings[key];
+  if (!player.matrix || !player.type) return;
+
+  if (action === "exit") {
+    if (escHoldTimeout) return;
+    window.location.href = "select-mode.html";
+    return;
+  }
+
+  const keysToPrevent = [" ", "arrowup", "arrowdown", "arrowleft", "arrowright", "escape"];
+  if (keysToPrevent.includes(key)) {
+    e.preventDefault();
+  }
+
+  if (!isPaused || key === 'p') {
+    switch (action) {
+      case 'left':
+        if (!e.repeat) {
+          playerMove(-1);
+          tapLeft = true;
+        }
+        moveHoldDir = -1;
+        moveFrameCounter = dasFrames;
+        initialMovePending = true;
+        break;
+
+      case 'right':
+        if (!e.repeat) {
+          playerMove(1);
+          tapRight = true;
+        }
+        moveHoldDir = 1;
+        moveFrameCounter = dasFrames;
+        initialMovePending = true;
+        break;
+
+      case 'softdrop':
+        if (!isSoftDropping) isSoftDropping = true;
+        break;
+
+      case 'harddrop':
         playerHardDrop();
         rotatedLast = false;
-      }
+        break;
+
+      case 'cw':
+        playerRotateCW();
+        break;
+
+      case 'ccw':
+        playerRotateCCW();
+        break;
+
+      case 'rotate180':
+        playerRotate180();
+        break;
+
+      case 'hold':
+        holdPiece();
+        break;
     }
-  
-    totalKeysPressed++;
-  });
-              
-  document.addEventListener("keyup", (e) => {
-    const key = e.key.toLowerCase();
-    const action = activeKeyBindings[key];
-  
-    if (action === "left") {
-      moveHoldDir = 0;
-      initialMovePending = false;
-      tapLeft = false;
-  
-    } else if (action === "right") {
-      moveHoldDir = 0;
-      initialMovePending = false;
-      tapRight = false;
-  
-    } else if (action === "softdrop") {
-      isSoftDropping = false;
+
+    if ((e.key === " " || e.code === "Space") && !action) {
+      e.preventDefault();
+      playerHardDrop();
+      rotatedLast = false;
     }
-  });
+  }
+
+  totalKeysPressed++;
+});
+
+document.addEventListener("keyup", (e) => {
+  const key = e.key.toLowerCase();
+  pressedKeys.delete(key);
+
+  const action = activeKeyBindings[key];
+  if (action === "left") {
+    moveHoldDir = 0;
+    initialMovePending = false;
+    tapLeft = false;
+
+  } else if (action === "right") {
+    moveHoldDir = 0;
+    initialMovePending = false;
+    tapRight = false;
+
+  } else if (action === "softdrop") {
+    isSoftDropping = false;
+  }
+});
     
 
   pauseButton.onclick = () => {
