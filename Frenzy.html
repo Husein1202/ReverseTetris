@@ -75,13 +75,8 @@
       <div><span>LINES</span><span id="statLines">0</span></div>
       <div><span>LINES / MINUTE</span><span id="statLPM">0</span></div>
       <div><span>MAX COMBO</span><span id="statCombo">x0</span></div>
-    <button id="completionbackMode">BACK TO MODE</button>
-    <script>
-      document.getElementById("completionbackMode").addEventListener("click", () => {
-        window.location.href = "select-mode.html";
-      });
-    </script>
-    
+      <button id="completionbackMode">BACK TO MODE</button>
+      <button id="Retrybutt">Retry</button>    
   </div>
 </div>
     </div>
@@ -182,6 +177,12 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 });
   </script>
+  <script>
+  document.getElementById("completionbackMode").addEventListener("click", () => {
+    window.location.href = "select-mode.html";
+  });
+</script>
+
 
   <div id="comboTitle">Combo!</div>
 

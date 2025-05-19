@@ -99,7 +99,7 @@ window.coolNicknames = [
   "TetehTetris", "BlokGagal", "SalahNgetik", "SiLemot", "CieNoob",
   "FrostByte", "SiPanik", "GaPernahMenang", "BlokManaBlok", "CipungTetris",
   "MainSendiri", "ComboNgaco", "PakTetris", "MalesMain", "GaAdaSkill",
-  "SkuyMain", "KambingNgeLag", "HoloFury", "UjangGaming", "KlikAjaDulu"
+  "SkuyMain", "KambingNgeLag", "BudeTetris", "UjangGaming", "KlikAjaDulu"
 ];
 
 window.onload = () => {
@@ -121,7 +121,7 @@ if (mode === 'solo' && !solo) {
       "TetehTetris", "BlokGagal", "SalahNgetik", "SiLemot", "CieNoob",
       "FrostByte", "SiPanik", "GaPernahMenang", "BlokManaBlok", "CipungTetris",
       "MainSendiri", "ComboNgaco", "PakTetris", "MalesMain", "GaAdaSkill",
-      "SkuyMain", "KambingNgeLag", "HoloFury", "UjangGaming", "KlikAjaDulu"    
+      "SkuyMain", "KambingNgeLag", "BudeTetris", "UjangGaming", "KlikAjaDulu"    
     ];
     joinButton.onclick = () => {
       let name = nicknameInput.value.trim();
@@ -231,6 +231,8 @@ function updateFrenzyTimer(deltaTime) {
       : "0.00";
     document.getElementById("statCombo").textContent = "x" + highestCombo;
     document.getElementById("statLines").textContent = player.lines;
+    document.getElementById("statHolds").textContent = holdCount;
+
     const lpm = (player.lines / (totalSeconds / 60)).toFixed(0);
     document.getElementById("statLPM").textContent = lpm;
 
@@ -895,35 +897,126 @@ function playerRotate180() {
     return false;
   }
 
-  function playerReset() {
-    const pieces = 'TJLOSZI';
-    
-    if (!player.next) {
-      player.next = getNextPiece();
-    }
-    const next = player.next;
-    player.next = getNextPiece();
-    
-    player.matrix = next.matrix;
-    player.type = next.type;
-    
-    player.pos.y = arena.length - player.matrix.length;
-    player.pos.x = (arena[0].length / 2 | 0) - (player.matrix[0].length / 2 | 0);
-    player.rotation = 0;
+function playerReset() {
+  const pieces = 'TJLOSZI';
 
+  if (!player.next) {
+    player.next = getNextPiece();
+  }
+  const next = player.next;
+  player.next = getNextPiece();
+
+  player.matrix = next.matrix;
+  player.type = next.type;
+
+  player.pos.y = arena.length - player.matrix.length;
+  player.pos.x = (arena[0].length / 2 | 0) - (player.matrix[0].length / 2 | 0);
+  player.rotation = 0;
 
 if (collide(arena, player)) {
-  if (!isRestarting) {
-    isRestarting = true;
-    console.log("🔁 Game restarting due to collision after spawn...");
-    startRestartSequence();  // 🔧 Sekarang sudah tidak error
+  console.log("💀 Topout → tampilkan overlay");
+
+  isGameOver = true;
+  timerStarted = false;
+
+  const bgm = window.getCurrentBGM?.();
+  if (bgm) bgm.pause();
+
+  if (sounds.gameover) {
+    sounds.gameover.currentTime = 0;
+    sounds.gameover.play();
   }
-  return; // ⛔ Jangan lanjut merge atau gambar tetromino
+
+  document.getElementById("completionOverlay").style.display = "flex";
+
+  // ⬇️ Tambahkan blok statistik yang sama di sini
+  const totalElapsed = Date.now() - gameStartTime;
+  const totalSeconds = totalElapsed / 1000;
+
+  document.getElementById("finalScoreDisplay").textContent = player.score;
+  document.getElementById("statScore").textContent = player.score;
+  document.getElementById("statPieces").textContent = totalPiecesDropped;
+  document.getElementById("statPPS").textContent = (totalPiecesDropped / totalSeconds).toFixed(2);
+  document.getElementById("statKeys").textContent = totalKeysPressed;
+  document.getElementById("statKPP").textContent = totalPiecesDropped > 0
+    ? (totalKeysPressed / totalPiecesDropped).toFixed(2)
+    : "0.00";
+  document.getElementById("statCombo").textContent = "x" + highestCombo;
+  document.getElementById("statLines").textContent = player.lines;
+  document.getElementById("statHolds").textContent = holdCount;
+  document.getElementById("statLPM").textContent = (player.lines / (totalSeconds / 60)).toFixed(0);
+
+  return;
+}
+  totalPiecesDropped++;
+
 }
 
-    console.log("Player reset with piece", player.matrix);
-    console.log("Player position", player.pos);
+function resetStats() {
+  totalPiecesDropped = 0;
+  totalKeysPressed = 0;
+  highestCombo = 0;
+  holdCount = 0;
+  elapsedTime = 0;
 }
+
+
+function startRestartSequence() {
+  isGameOver = false;
+  isPaused = false;
+  isRestarting = false;
+  rotatedLast = false;
+  timerStarted = false;
+  lockPending = false;
+  lockResetCount = 0;
+  comboCount = 0;
+  totalPiecesDropped = 0;
+  totalKeysPressed = 0;
+  highestCombo = 0;
+  holdCount = 0;
+  hold.matrix = null;
+  hold.hasHeld = false;
+  elapsedTime = 0;
+  FrenzyTimeRemaining = 2 * 60 * 1000;
+  gameStartTime = Date.now();
+
+  resetStats();
+
+  // Reset arena
+  for (let y = 0; y < arena.length; ++y) {
+    arena[y].fill(0);
+  }
+
+  // Reset player
+  hold.matrix = null;
+  hold.hasHeld = false;
+  player.next = null;
+  player.matrix = null;
+  player.score = 0;
+  player.level = 1;
+  player.lines = 0;
+
+  document.getElementById("completionOverlay").style.display = "none";
+
+  // ⏱️ Countdown ke game baru
+  startCountdown();
+  clearHoldCanvas();
+
+}
+
+function clearHoldCanvas() {
+  const holdCanvas = document.getElementById('holdCanvas');
+  if (holdCanvas) {
+    const ctx = holdCanvas.getContext('2d');
+    ctx.clearRect(0, 0, holdCanvas.width, holdCanvas.height);
+  }
+}
+
+document.getElementById("Retrybutt")?.addEventListener("click", () => {
+  console.log("🔁 Retry clicked");
+  startRestartSequence();
+});
+
 
   function arenaSweep() {
     let linesCleared = 0;
@@ -987,21 +1080,7 @@ if (clearedRows.length > 0) {
         dropInterval = Math.max(100, 1000 - (player.level - 1) * 100);
         sounds.levelup.currentTime = 0;
         sounds.levelup.play();
-      }
-  
-      if (player.lines >= 40 && localStorage.getItem("selectedSoloMode") === "40line") {
-        setTimeout(() => {
-          document.getElementById("completionOverlay").style.display = "flex";
-          const backBtn = document.getElementById("completionbackMode");
-          if (backBtn) {
-            backBtn.onclick = () => {
-              window.location.href = "select-mode.html";
-            };
-          }
-        }, 1000);
-      }
-  
-    } else {
+      }} else {
       if (comboCount > 0) {
         comboCount = 0;
         sounds.comboBreak.currentTime = 0;
@@ -1010,6 +1089,7 @@ if (clearedRows.length > 0) {
       }
     }
   }
+
   function updateScore() {
     const scoreElement = document.getElementById('score');
     const linesElement = document.getElementById('lines');

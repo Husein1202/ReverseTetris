@@ -8,7 +8,7 @@
       "TetehTetris", "BlokGagal", "SalahNgetik", "SiLemot", "CieNoob",
       "FrostByte", "SiPanik", "GaPernahMenang", "BlokManaBlok", "CipungTetris",
       "MainSendiri", "ComboNgaco", "PakTetris", "MalesMain", "GaAdaSkill",
-      "SkuyMain", "KambingNgeLag", "HoloFury", "UjangGaming", "KlikAjaDulu"
+      "SkuyMain", "KambingNgeLag", "BudeTetris", "UjangGaming", "KlikAjaDulu"
     ];
     
     // Cek apakah nickname adalah salah satu dari coolNicknames

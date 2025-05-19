@@ -1073,7 +1073,7 @@ transform: translateX(0);
   color: #879cf6;
 }
 
-#completionbackMode {
+#completionbackMode, #Retrybutt {
   margin-top: 25px;
   font-size: 1em;
   padding: 10px 25px;

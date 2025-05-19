@@ -99,7 +99,7 @@ window.coolNicknames = [
   "TetehTetris", "BlokGagal", "SalahNgetik", "SiLemot", "CieNoob",
   "FrostByte", "SiPanik", "GaPernahMenang", "BlokManaBlok", "CipungTetris",
   "MainSendiri", "ComboNgaco", "PakTetris", "MalesMain", "GaAdaSkill",
-  "SkuyMain", "KambingNgeLag", "HoloFury", "UjangGaming", "KlikAjaDulu"
+  "SkuyMain", "KambingNgeLag", "BudeTetris", "UjangGaming", "KlikAjaDulu"
 ];
 
 window.onload = () => {
@@ -122,7 +122,7 @@ if (mode === 'solo' && !solo) {
       "TetehTetris", "BlokGagal", "SalahNgetik", "SiLemot", "CieNoob",
       "FrostByte", "SiPanik", "GaPernahMenang", "BlokManaBlok", "CipungTetris",
       "MainSendiri", "ComboNgaco", "PakTetris", "MalesMain", "GaAdaSkill",
-      "SkuyMain", "KambingNgeLag", "HoloFury", "UjangGaming", "KlikAjaDulu"    
+      "SkuyMain", "KambingNgeLag", "BudeTetris", "UjangGaming", "KlikAjaDulu"    
     ];
     joinButton.onclick = () => {
       let name = nicknameInput.value.trim();
@@ -187,7 +187,6 @@ if (mode === 'solo' && !solo) {
     lineclear: document.getElementById('lineclear'),
     hold: document.getElementById('hold'),
     softdrop: document.getElementById('softdrop'),
-    gameOverAlt: new Audio('sound/game_over.mp3'),
     levelup: document.getElementById('levelup'),
     countdown3: document.getElementById('countdown3'),
     countdown2: document.getElementById('countdown2'),
@@ -1094,10 +1093,25 @@ function resetGame() {
   controlsLocked = true;
 
   arena.forEach(row => row.fill(0));
+
+  // 🔁 Reset statistik dan variabel penting
+  medScore = 0;
+  medLevel = 1;
+  comboCount = 0;
+  highestCombo = 0;
+  holdCount = 0;
+  hold = { matrix: null, hasHeld: false };
+
+  // ✅ Update tampilan skor & level
+  const scoreEl = document.getElementById('score');
+  const levelEl = document.getElementById('medLevel');
+  if (scoreEl) scoreEl.textContent = `0/${baseLevelScore}`;
+  if (levelEl) levelEl.textContent = `1`;
+
   player.score = 0;
   player.lines = 0;
 
-  playerReset();
+  playerReset(); // spawn tetromino baru
   console.log("🧩 Tetromino baru di-spawn");
 
   isGameOver = false;
@@ -1107,6 +1121,12 @@ function resetGame() {
     draw();
     console.log("🎮 Game ready again");
   }, 500);
+  const holdCanvas = document.getElementById('holdCanvas');
+  if (holdCanvas) {
+    const ctx = holdCanvas.getContext('2d');
+    ctx.clearRect(0, 0, holdCanvas.width, holdCanvas.height);
+  }
+
 }
 
   let pendingBind = null;
@@ -1365,7 +1385,7 @@ startCountdown(); // jangan ada baris lain setelah ini (seperti update() atau pl
   };
   
   function holdPiece() {
-    
+
     holdCount++;
 
     if (hold.hasHeld) return;
