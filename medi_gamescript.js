@@ -185,6 +185,7 @@ if (mode === 'solo' && !solo) {
     harddrop: document.getElementById('harddrop'),
     lineclear: document.getElementById('lineclear'),
     hold: document.getElementById('hold'),
+    undo: document.getElementById("undo"),
     softdrop: document.getElementById('softdrop'),
     levelup: document.getElementById('levelup'),
     countdown3: document.getElementById('countdown3'),
@@ -582,6 +583,15 @@ function drawDebris(ctx) {
         type: player.next.type
       }
     });
+
+    const arenaContainer = document.querySelector(".tetris-wrapper");
+if (arenaContainer) {
+  arenaContainer.classList.add("arena-popup");
+  setTimeout(() => {
+    arenaContainer.classList.remove("arena-popup");
+  }, 200);
+}
+
     merge(arena, player);
     hold.hasHeld = false;
     arenaSweep();
@@ -649,33 +659,39 @@ function startLockDelay() {
         }
       }
       
-      function playerMove(dir) {
-      lastState = {
-          matrix: player.matrix.map(row => [...row]),
-          pos: { ...player.pos },
-          rotation: player.rotation,
-          flip180: player.flip180
-        };
+function playerMove(dir) {
+  player.pos.x += dir;
 
-        player.pos.x += dir;
-      
-        if (collide(arena, player)) {
-          player.pos.x -= dir;
-        } else {
-          if (lockPending && lockResetCount < MAX_LOCK_RESETS) {
-            lockResetCount++;
-            startLockDelay();
-          }
-      
-          // 🔁 Suara gerakan horizontal (A/D) termasuk saat ARR aktif
-          if (sounds.move) {
-            const moveSound = sounds.move.cloneNode(); // clone = bisa overlap
-            moveSound.volume = sounds.move.volume;
-            moveSound.play();
-          }
-        }
-      }
-          
+  const wrapper = document.querySelector(".tetris-wrapper");
+  let hitWall = false;
+
+  if (collide(arena, player)) {
+    player.pos.x -= dir;
+    hitWall = true;
+
+    if (wrapper) {
+      wrapper.classList.remove("arena-left", "arena-right", "arena-center");
+      wrapper.classList.add(dir === -1 ? "arena-left" : "arena-right");
+    }
+
+  } else {
+    if (lockPending && lockResetCount < MAX_LOCK_RESETS) {
+      lockResetCount++;
+      startLockDelay();
+    }
+
+    if (sounds.move) {
+      const moveSound = sounds.move.cloneNode();
+      moveSound.volume = sounds.move.volume;
+      moveSound.play();
+    }
+
+    if (wrapper && !hitWall) {
+      wrapper.classList.remove("arena-left", "arena-right");
+      wrapper.classList.add("arena-center");
+    }
+  }
+}
   function handleInitialMove(dir) {
     currentMoveDir = dir;
     playerMove(dir); // geser langsung pertama
@@ -1323,10 +1339,21 @@ document.addEventListener("keydown", (e) => {
       }, 1200);
     }
 
-    const undoSound = document.getElementById("undo");
-    if (undoSound) {
-  undoSound.currentTime = 0; // restart jika diputar sebelumnya
-  undoSound.play();
+    const arenaContainer = document.querySelector(".tetris-wrapper");
+    if (arenaContainer) {
+      arenaContainer.classList.add("arena-shake");
+      setTimeout(() => {
+        arenaContainer.classList.remove("arena-shake");
+      }, 300);
+}
+
+
+if (sounds.undo) {
+  const sfx = sounds.undo.cloneNode();
+  const fxVol = parseFloat(localStorage.getItem("fxVolume") ?? "15") / 100;
+  sfx.volume = fxVol;
+  sfx.currentTime = 0;
+  sfx.play();
 }
 
     return;
@@ -1409,9 +1436,19 @@ document.addEventListener("keyup", (e) => {
   if (key === "z" && isCtrlZPressed) {
     isCtrlZPressed = false;
   }
+
   pressedKeys.delete(key);
 
   const action = activeKeyBindings[getInputKey(e)];
+
+  if ((action === "left" && tapLeft) || (action === "right" && tapRight)) {
+    const wrapper = document.querySelector(".tetris-wrapper");
+    if (wrapper) {
+      wrapper.classList.remove("arena-left", "arena-right");
+      wrapper.classList.add("arena-center");
+    }
+  }
+
   if (action === "left") {
     moveHoldDir = 0;
     initialMovePending = false;

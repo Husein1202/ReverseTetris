@@ -22,7 +22,7 @@ function updateVolumeValue(id) {
       "countdown1", "countdown2", "countdown3",
       "combo1", "combo2", "combo3", "combo4", "combo5", "combo6", "combo7", "combo8",
       "combo9", "combo10", "combo11", "combo12", "combo13", "combo14", "combo15", "combo16",
-      "comboBreak"
+      "comboBreak", "undo"
     ];
     for (const id of sfxElements) {
       const el = document.getElementById(id);
@@ -406,7 +406,7 @@ document.addEventListener("DOMContentLoaded", () => {
     "countdown1", "countdown2", "countdown3",
     "combo1", "combo2", "combo3", "combo4", "combo5", "combo6", "combo7", "combo8",
     "combo9", "combo10", "combo11", "combo12", "combo13", "combo14", "combo15", "combo16",
-    "comboBreak", "buttonSound"
+    "comboBreak", "buttonSound","undo"
   ];
 
   sfxIds.forEach(id => {

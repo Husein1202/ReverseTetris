@@ -631,6 +631,13 @@ function drawDebris(ctx) {
       createdAt: performance.now(),
       duration: 600 // durasi dalam ms
     });
+        const arenaContainer = document.querySelector(".tetris-wrapper");
+if (arenaContainer) {
+  arenaContainer.classList.add("arena-popup");
+  setTimeout(() => {
+    arenaContainer.classList.remove("arena-popup");
+  }, 200);
+}
   
     merge(arena, player);
     hold.hasHeld = false;
@@ -662,25 +669,39 @@ function drawDebris(ctx) {
     }
   }
   
-  function playerMove(dir) {
-    player.pos.x += dir;
-  
-    if (collide(arena, player)) {
-      player.pos.x -= dir;
-    } else {
-      if (lockPending && lockResetCount < MAX_LOCK_RESETS) {
-        lockResetCount++;
-        startLockDelay();
-      }
-  
-      // 🔁 Suara gerakan horizontal (A/D) termasuk saat ARR aktif
-      if (sounds.move) {
-        const moveSound = sounds.move.cloneNode(); // clone = bisa overlap
-        moveSound.volume = sounds.move.volume;
-        moveSound.play();
-      }
+function playerMove(dir) {
+  player.pos.x += dir;
+
+  const wrapper = document.querySelector(".tetris-wrapper");
+  let hitWall = false;
+
+  if (collide(arena, player)) {
+    player.pos.x -= dir;
+    hitWall = true;
+
+    if (wrapper) {
+      wrapper.classList.remove("arena-left", "arena-right", "arena-center");
+      wrapper.classList.add(dir === -1 ? "arena-left" : "arena-right");
+    }
+
+  } else {
+    if (lockPending && lockResetCount < MAX_LOCK_RESETS) {
+      lockResetCount++;
+      startLockDelay();
+    }
+
+    if (sounds.move) {
+      const moveSound = sounds.move.cloneNode();
+      moveSound.volume = sounds.move.volume;
+      moveSound.play();
+    }
+
+    if (wrapper && !hitWall) {
+      wrapper.classList.remove("arena-left", "arena-right");
+      wrapper.classList.add("arena-center");
     }
   }
+}
       
   function handleInitialMove(dir) {
     currentMoveDir = dir;
@@ -1363,17 +1384,22 @@ document.addEventListener("keyup", (e) => {
   const key = e.key.toLowerCase();
   pressedKeys.delete(key);
 
-  const action = activeKeyBindings[key];
+  const action = activeKeyBindings[key] || "";
+
+  const wrapper = document.querySelector(".tetris-wrapper");
+  if ((action === "left" && tapLeft) || (action === "right" && tapRight)) {
+    wrapper?.classList.remove("arena-left", "arena-right");
+    wrapper?.classList.add("arena-center");
+  }
+
   if (action === "left") {
     moveHoldDir = 0;
     initialMovePending = false;
     tapLeft = false;
-
   } else if (action === "right") {
     moveHoldDir = 0;
     initialMovePending = false;
     tapRight = false;
-
   } else if (action === "softdrop") {
     isSoftDropping = false;
   }

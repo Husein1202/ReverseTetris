@@ -987,7 +987,7 @@ transform: translateX(0);
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  font-size: 1.4rem;
+  font-size: 1.3rem;
   color: white;
   opacity: 0;
   pointer-events: none;
@@ -999,6 +999,46 @@ transform: translateX(0);
 #undoAlert.show {
   opacity: 1;
 }
+
+@keyframes arenaShake {
+  0% { transform: translateX(0); }
+  20% { transform: translateX(-4px); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-2px); }
+  80% { transform: translateX(2px); }
+  100% { transform: translateX(0); }
+}
+
+.arena-shake {
+  animation: arenaShake 0.3s ease;
+}
+
+@keyframes arenaPopUp {
+  0% { transform: translateY(0); }
+  30% { transform: translateY(-3px); }
+  100% { transform: translateY(0); }
+}
+
+.arena-popup {
+  animation: arenaPopUp 0.2s ease-out;
+}
+
+.arena-left {
+  transform: translateX(-4px);
+  transition: transform 0.2s cubic-bezier(0.33, 1, 0.68, 1);
+}
+
+.arena-right {
+  transform: translateX(4px);
+  transition: transform 0.2s cubic-bezier(0.33, 1, 0.68, 1);
+}
+
+.arena-center {
+  transform: translateX(0);
+  transition: transform 0.25s ease-out;
+}
+
+
 
 
 #backMode {
