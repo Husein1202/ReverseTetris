@@ -320,8 +320,16 @@ function updateFrenzyTimer(deltaTime) {
   let softDropTimer = 0;
   let tapLeft = false;
   let tapRight = false;
+  let usedWallkick = false;
+  let lockedAfterRotate = false;
+  let isEscapeHolding = false;
+  let escHoldStartTime = null;
+  let escHoldTimeout = null;
+  let escStartTime = null;
+  let escAnimationFrame = null;
+  let escKeyIsDown = false;
 
-  
+
 
 
   const dasFrames = localStorage.getItem("das") !== null ? Math.round(parseFloat(localStorage.getItem("das"))) : 10;
@@ -731,37 +739,34 @@ function isValidPlacement(matrix, pos, arena) {
 }
     
 function tryRotate(direction) {
-
-    if (!player.type || typeof player.rotation !== "number") {
+  if (!player.type || typeof player.rotation !== "number") {
     console.warn("🚫 Rotasi diblok: player belum siap", player);
     return false;
   }
 
-  const originalMatrix = player.matrix;
-  const rotatedMatrix = rotateMatrix(player.matrix, direction);
   const from = player.rotation ?? 0;
   const to = (player.rotation + direction + 4) % 4;
+  const rotatedMatrix = rotateMatrix(player.matrix, direction);
   const kicks = getWallkickData(player.type, from, to);
 
   for (let i = 0; i < kicks.length; i++) {
     const offset = kicks[i];
-    const testPos = {
-      x: player.pos.x + offset.x,
-      y: player.pos.y + offset.y,
-    };
+    const newPos = { x: player.pos.x + offset.x, y: player.pos.y + offset.y };
 
-    if (isValidPlacement(rotatedMatrix, testPos, arena)) {
+    if (!collide(arena, { matrix: rotatedMatrix, pos: newPos })) {
       player.matrix = rotatedMatrix.map(row => [...row]);
-      player.pos = { ...testPos };
+      player.pos = { ...newPos };
       player.rotation = to;
-      rotatedLast = true;
 
-       // 🔍 Integrasi T-Spin setelah rotasi
+      rotatedLast = true;
+      usedWallkick = i > 0;
       return true;
     }
   }
+
   return false;
 }
+
     
 function tryRotate180() {
   const originalMatrix = player.matrix;
@@ -782,40 +787,59 @@ function tryRotate180() {
       player.pos = { ...testPos };
       player.rotation = to;
       rotatedLast = true;
-
-       // 🔍 Integrasi T-Spin
+      usedWallkick = i > 0; // ✅ dipastikan i sudah didefinisikan
       return true;
     }
   }
   return false;
 }
 
-window.detectTSpinType = function(player, arena, linesCleared, rotatedLast) {
-  if (player.type !== 'T' || !rotatedLast) return null;
+window.detectSpinType = function(player, arena, linesCleared) {
+  if (!lockedAfterRotate) return null;
 
-  const centerX = player.pos.x + 1;
-  const centerY = player.pos.y + 1;
+  const type = player.type;
+  const x = player.pos.x + 1;
+  const y = player.pos.y + 1;
 
   const corners = [
-    arena[centerY - 1]?.[centerX - 1], // top-left
-    arena[centerY - 1]?.[centerX + 1], // top-right
-    arena[centerY + 1]?.[centerX - 1], // bottom-left
-    arena[centerY + 1]?.[centerX + 1], // bottom-right
+    arena[y - 1]?.[x - 1],
+    arena[y - 1]?.[x + 1],
+    arena[y + 1]?.[x - 1],
+    arena[y + 1]?.[x + 1],
   ];
-
   const occupied = corners.filter(cell => cell && cell !== 0).length;
 
-  if (occupied >= 3) {
-    return linesCleared > 0 ? "T-SPIN" : "T-SPIN NO CLEAR";
-  } else if (linesCleared === 1) {
-    return "T-SPIN MINI";
-  }
+  const isMini = occupied < 3;
+  const spinLabel = `${type}-SPIN`;
 
+  if (["T", "L", "J", "S", "Z", "I"].includes(type)) {
+    if (occupied >= 3) {
+      if (linesCleared > 0) {
+        const suffix = ["SINGLE", "DOUBLE", "TRIPLE"][linesCleared - 1] || `${linesCleared} LINES`;
+        return `${spinLabel} ${suffix}`;
+      } else {
+        return `${spinLabel} NO CLEAR`;
+      }
+    } else if (linesCleared > 0 && isMini) {
+      return linesCleared === 1 ? `${spinLabel} MINI` :
+             linesCleared === 2 ? `${spinLabel} MINI DOUBLE` : null;
+    } else if (linesCleared === 0 && isMini) {
+      return `${spinLabel} MINI NO LINES`;
+    }
+  }
   return null;
 };
 
-function playerRotateCW() {
-  if (tryRotate(1)) {
+function playerRotateCCW() {
+  if (tryRotate(-1)) {
+    rotatedLast = true;
+
+    if (sounds.rotate) {
+      const sfx = sounds.rotate.cloneNode();
+      sfx.volume = sounds.rotate.volume;
+      sfx.play();
+    }
+
     if (lockPending && lockResetCount < MAX_LOCK_RESETS) {
       lockResetCount++;
       startLockDelay();
@@ -823,8 +847,16 @@ function playerRotateCW() {
   }
 }
 
-function playerRotateCCW() {
-  if (tryRotate(-1)) {
+function playerRotateCW() {
+  if (tryRotate(1)) {
+    rotatedLast = true;
+
+    if (sounds.rotate) {
+      const sfx = sounds.rotate.cloneNode();
+      sfx.volume = sounds.rotate.volume;
+      sfx.play();
+    }
+
     if (lockPending && lockResetCount < MAX_LOCK_RESETS) {
       lockResetCount++;
       startLockDelay();
@@ -834,12 +866,20 @@ function playerRotateCCW() {
 
 function playerRotate180() {
   if (tryRotate180()) {
+    rotatedLast = true;
+
+    if (sounds.rotate) {
+      const sfx = sounds.rotate.cloneNode();
+      sfx.volume = sounds.rotate.volume;
+      sfx.play();
+    }
+
     if (lockPending && lockResetCount < MAX_LOCK_RESETS) {
       lockResetCount++;
       startLockDelay();
     }
   }
-}    
+}
     
   function startLockDelay() {
     if (lockTimeout) clearTimeout(lockTimeout);
@@ -1018,78 +1058,84 @@ document.getElementById("Retrybutt")?.addEventListener("click", () => {
 });
 
 
-  function arenaSweep() {
-    let linesCleared = 0;
-    const clearedRows = [];
-    for (let y = 0; y < arena.length; ++y) {
-      if (arena[y].every(cell => cell !== 0)) {
-        clearedRows.push(y);            // ✅ SIMPAN BARIS YANG DICLEAR
-        arena.splice(y, 1);
-        arena.push(new Array(arena[0].length).fill(0));
-        player.score += 10 * player.level;
-        linesCleared++;
-        y--;
-      }
-    }
-  
-
-    // Tambahkan efek hanya pada baris yang dihapus
-if (clearedRows.length > 0) {
-  clearedRows.forEach(rowY => {
-    triggerFlash(rowY);   // Flash hanya di baris yang di-clear
-    spawnDebris(rowY);    // Debris jatuh di baris itu juga
-  });
-}
-
-  
-    if (linesCleared > 0) {
-      triggerFlash(); 
-      const tspinType = window.detectTSpinType(player, arena, linesCleared, rotatedLast);
-      if (tspinType) {
-        congratsText.textContent = tspinType;
-      }      rotatedLast = false;
-  
-      comboCount += linesCleared;
-      if (comboCount > highestCombo) highestCombo = comboCount;
-
-      showComboTitle(linesCleared);
-      const soundId = `combo${Math.min(comboCount, 16)}`;
-      if (sounds[soundId]) {
-        sounds[soundId].currentTime = 0;
-        sounds[soundId].play();
-      }
-  
-      comboDisplay.textContent = `Combo x${comboCount}!`;
-      comboDisplay.style.opacity = 1;
-      clearTimeout(comboDisplayTimeout);
-      comboDisplayTimeout = setTimeout(() => {
-        comboDisplay.style.opacity = 0;
-      }, 1000);
-  
-      sounds.lineclear.currentTime = 0;
-      sounds.lineclear.play();
-  
-      const phrase = phrases[Math.floor(Math.random() * phrases.length)];
-      congratsText.textContent = phrase;
-  
-      player.lines += linesCleared;
-  
-      const newLevel = Math.floor(player.lines / 40) + 1;
-      if (newLevel !== player.level) {
-        player.level = newLevel;
-        dropInterval = Math.max(100, 1000 - (player.level - 1) * 100);
-        sounds.levelup.currentTime = 0;
-        sounds.levelup.play();
-      }} else {
-      if (comboCount > 0) {
-        comboCount = 0;
-        sounds.comboBreak.currentTime = 0;
-        sounds.comboBreak.play();
-        comboDisplay.style.opacity = 0;
-      }
+function arenaSweep() {
+  let linesCleared = 0;
+  const clearedRows = [];
+  for (let y = 0; y < arena.length; ++y) {
+    if (arena[y].every(cell => cell !== 0)) {
+      clearedRows.push(y);
+      arena.splice(y, 1);
+      arena.push(new Array(arena[0].length).fill(0));
+      player.score += 10 * player.level;
+      linesCleared++;
+      y--;
     }
   }
 
+  if (clearedRows.length > 0) {
+    clearedRows.forEach(rowY => {
+      triggerFlash(rowY);
+      spawnDebris(rowY);
+    });
+  }
+
+  if (linesCleared > 0) {
+    triggerFlash();
+
+    lockedAfterRotate = rotatedLast && usedWallkick;
+    const spinType = window.detectSpinType(player, arena, linesCleared);
+    rotatedLast = false;
+    usedWallkick = false;
+    lockedAfterRotate = false;
+
+    if (spinType) {
+      congratsText.textContent = spinType;
+      comboTitle.textContent = spinType;
+      comboTitle.style.opacity = 1;
+      setTimeout(() => comboTitle.style.opacity = 0, 1000);
+    }
+
+    comboCount += linesCleared;
+    if (comboCount > highestCombo) highestCombo = comboCount;
+
+    showComboTitle(linesCleared);
+    const soundId = `combo${Math.min(comboCount, 16)}`;
+    if (sounds[soundId]) {
+      sounds[soundId].currentTime = 0;
+      sounds[soundId].play();
+    }
+
+    comboDisplay.textContent = `Combo x${comboCount}!`;
+    comboDisplay.style.opacity = 1;
+    clearTimeout(comboDisplayTimeout);
+    comboDisplayTimeout = setTimeout(() => {
+      comboDisplay.style.opacity = 0;
+    }, 1000);
+
+    sounds.lineclear.currentTime = 0;
+    sounds.lineclear.play();
+
+    const phrase = phrases[Math.floor(Math.random() * phrases.length)];
+    congratsText.textContent = phrase;
+
+    player.lines += linesCleared;
+
+    const newLevel = Math.floor(player.lines / 40) + 1;
+    if (newLevel !== player.level) {
+      player.level = newLevel;
+      dropInterval = Math.max(100, 1000 - (player.level - 1) * 100);
+      sounds.levelup.currentTime = 0;
+      sounds.levelup.play();
+    }
+  } else {
+    if (comboCount > 0) {
+      comboCount = 0;
+      sounds.comboBreak.currentTime = 0;
+      sounds.comboBreak.play();
+      comboDisplay.style.opacity = 0;
+    }
+  }
+}
   function updateScore() {
     const scoreElement = document.getElementById('score');
     const linesElement = document.getElementById('lines');
@@ -1224,12 +1270,6 @@ document.addEventListener('keydown', (e) => {
 
   const action = activeKeyBindings[key];
   if (!player.matrix || !player.type) return;
-
-  if (action === "exit") {
-    if (escHoldTimeout) return;
-    window.location.href = "select-mode.html";
-    return;
-  }
 
   const keysToPrevent = [" ", "arrowup", "arrowdown", "arrowleft", "arrowright", "escape"];
   if (keysToPrevent.includes(key)) {
@@ -1460,17 +1500,19 @@ document.addEventListener("keyup", (e) => {
     });
   }
 
-let escHoldTimeout = null;
-let escStartTime = null;
-let escAnimationFrame = null;
 const HOLD_DURATION = 2000;
 
 const quitOverlay = document.getElementById('holdToQuitOverlay');
 const progressQuitBar = document.getElementById('progressQuitBar');
 
 function updateProgressBar() {
-  const elapsed = Date.now() - escStartTime;
+  if (!isEscapeHolding || hasTriggeredQuit || !escHoldStartTime) return;
+
+  const elapsed = Date.now() - escHoldStartTime;
   const progress = Math.min(elapsed / HOLD_DURATION, 1);
+    console.log(`progress: ${progress}, elapsed: ${elapsed}`); // 🔍 Tambahkan ini untuk debug
+
+
   if (progressQuitBar) {
     progressQuitBar.style.width = `${progress * 100}%`;
   }
@@ -1487,24 +1529,27 @@ function updateProgressBar() {
   }
 
   if (quitOverlay) {
-    const maxHeight = 100;
-    const minHeight = 30;
-    const dynamicHeight = minHeight + (maxHeight - minHeight) * progress;
-    quitOverlay.style.height = `${dynamicHeight}px`;
+    quitOverlay.style.height = "auto";
   }
 
-  if (progress < 1) {
-    escAnimationFrame = requestAnimationFrame(updateProgressBar);
-  } else {
-    requestAnimationFrame(() => {
-      window.location.href = "select-mode.html";
-    });
-  }
+if (Date.now() - escHoldStartTime < HOLD_DURATION) {
+  escAnimationFrame = requestAnimationFrame(updateProgressBar);
+} else if (!hasTriggeredQuit) {
+  hasTriggeredQuit = true;
+  window.location.href = "select-mode.html";
+}
 }
 
-document.addEventListener("keydown", function (e) {
-  if (e.key === "Escape" && !escHoldTimeout) {
-    escStartTime = Date.now();
+// Saat tombol ESCAPE ditekan pertama kali
+document.addEventListener("keydown", function(e) {
+  if (e.key === "Escape" && !escKeyIsDown && !hasTriggeredQuit) {
+    escKeyIsDown = true;
+    isEscapeHolding = true;
+
+    if (!escHoldStartTime) {
+      escHoldStartTime = Date.now();
+      escAnimationFrame = requestAnimationFrame(updateProgressBar);
+    }
 
     if (quitOverlay) {
       quitOverlay.style.display = 'flex';
@@ -1512,34 +1557,39 @@ document.addEventListener("keydown", function (e) {
       void quitOverlay.offsetHeight;
       quitOverlay.style.animation = 'slideUp 0.3s ease-out';
     }
-
-    updateProgressBar();
-    escHoldTimeout = setTimeout(() => {}, HOLD_DURATION);
   }
 });
 
-document.addEventListener("keyup", function (e) {
+document.addEventListener("keyup", function(e) {
   if (e.key === "Escape") {
-    clearTimeout(escHoldTimeout);
+    escKeyIsDown = false;
+    isEscapeHolding = false;
+
+    const elapsed = escHoldStartTime ? Date.now() - escHoldStartTime : 0;
+    escHoldStartTime = null;
+    hasTriggeredQuit = false;
+
     cancelAnimationFrame(escAnimationFrame);
-    escHoldTimeout = null;
     escAnimationFrame = null;
 
     const holdText = document.getElementById('holdText');
     if (holdText) {
-      holdText.textContent = "NICE, THANKYOU FOR KEEP PLAYING";
+      holdText.textContent = "NICE, THANK YOU FOR KEEP PLAYING";
     }
 
-    if (quitOverlay) {
+    if (quitOverlay && elapsed < HOLD_DURATION) {
       quitOverlay.style.height = '30px';
       quitOverlay.style.animation = 'none';
       void quitOverlay.offsetHeight;
       quitOverlay.style.animation = 'slideDown 1s ease-in';
 
-      setTimeout(() => {
-        quitOverlay.style.display = 'none';
-        if (progressQuitBar) progressQuitBar.style.width = "0%";
-      }, 1000);
+      quitOverlay.addEventListener('animationend', function handleAnimEnd() {
+        if (!isEscapeHolding) {
+          quitOverlay.style.display = 'none';
+          if (progressQuitBar) progressQuitBar.style.width = "0%";
+        }
+        quitOverlay.removeEventListener('animationend', handleAnimEnd);
+      });
     }
   }
 });

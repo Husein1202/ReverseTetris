@@ -35,14 +35,29 @@ let tapRight = false;
 let escHoldTimeout = null;
 let escStartTime = null;
 let escAnimationFrame = null;
+let usedWallkick = false;
+let lockedAfterRotate = false;
+let isEscapeHolding = false;
+let escHoldStartTime = null;
+let hasTriggeredQuit = false;
+let escKeyIsDown = false;
+
+
+
+
 const HOLD_DURATION= 2000;
 
 const quitOverlay = document.getElementById('holdToQuitOverlay');
 const progressQuitBar = document.getElementById('progressQuitBar');
 
 function updateProgressBar() {
-  const elapsed = Date.now() - escStartTime;
+  if (!isEscapeHolding || hasTriggeredQuit || !escHoldStartTime) return;
+
+  const elapsed = Date.now() - escHoldStartTime;
   const progress = Math.min(elapsed / HOLD_DURATION, 1);
+    console.log(`progress: ${progress}, elapsed: ${elapsed}`); // 🔍 Tambahkan ini untuk debug
+
+
   if (progressQuitBar) {
     progressQuitBar.style.width = `${progress * 100}%`;
   }
@@ -57,69 +72,72 @@ function updateProgressBar() {
       holdText.textContent = "KEEP HOLD THAT BUTTON TO QUIT";
     }
   }
+
   if (quitOverlay) {
-    const maxHeight = 100; // px, maksimal tinggi overlay saat progress penuh
-    const minHeight = 30;  // px, tinggi awal overlay
-    const dynamicHeight = minHeight + (maxHeight - minHeight) * progress;
-    quitOverlay.style.height = `${dynamicHeight}px`;
+    quitOverlay.style.height = "auto";
   }
-  
-  if (progress < 1) {
-    escAnimationFrame = requestAnimationFrame(updateProgressBar);
-  } else {
-    // Tambahkan 1 frame delay untuk memastikan bar tampil penuh
-    requestAnimationFrame(() => {
-      window.location.href = "select-mode.html";
-    });
-  }
+
+if (Date.now() - escHoldStartTime < HOLD_DURATION) {
+  escAnimationFrame = requestAnimationFrame(updateProgressBar);
+} else if (!hasTriggeredQuit) {
+  hasTriggeredQuit = true;
+  window.location.href = "select-mode.html";
+}
 }
 
+// Saat tombol ESCAPE ditekan pertama kali
 document.addEventListener("keydown", function(e) {
-  if (e.key === "Escape" && !escHoldTimeout) {
-    escStartTime = Date.now();
+  if (e.key === "Escape" && !escKeyIsDown && !hasTriggeredQuit) {
+    escKeyIsDown = true;
+    isEscapeHolding = true;
+
+    if (!escHoldStartTime) {
+      escHoldStartTime = Date.now();
+      escAnimationFrame = requestAnimationFrame(updateProgressBar);
+    }
 
     if (quitOverlay) {
       quitOverlay.style.display = 'flex';
       quitOverlay.style.animation = 'none';
-      void quitOverlay.offsetHeight; // force reflow
+      void quitOverlay.offsetHeight;
       quitOverlay.style.animation = 'slideUp 0.3s ease-out';
     }
-
-    updateProgressBar();
-    escHoldTimeout = setTimeout(() => {}, HOLD_DURATION); // placeholder saja
   }
 });
 
 document.addEventListener("keyup", function(e) {
   if (e.key === "Escape") {
-    clearTimeout(escHoldTimeout);
+    escKeyIsDown = false;
+    isEscapeHolding = false;
+
+    const elapsed = escHoldStartTime ? Date.now() - escHoldStartTime : 0;
+    escHoldStartTime = null;
+    hasTriggeredQuit = false;
+
     cancelAnimationFrame(escAnimationFrame);
-    escHoldTimeout = null;
     escAnimationFrame = null;
 
     const holdText = document.getElementById('holdText');
     if (holdText) {
-      holdText.textContent = "NICE, THANKYOU FOR KEEP PLAYING";
+      holdText.textContent = "NICE, THANK YOU FOR KEEP PLAYING";
     }
 
-    if (quitOverlay) {
-      // ✅ Langsung turunkan height — smooth via CSS transition
+    if (quitOverlay && elapsed < HOLD_DURATION) {
       quitOverlay.style.height = '30px';
-
-      // ✅ Langsung juga animasi slideDown (NO DELAY)
       quitOverlay.style.animation = 'none';
       void quitOverlay.offsetHeight;
       quitOverlay.style.animation = 'slideDown 1s ease-in';
 
-      // ✅ Setelah selesai animasi keluar, baru display none
-      setTimeout(() => {
-        quitOverlay.style.display = 'none';
-        if (progressQuitBar) progressQuitBar.style.width = "0%";
-      }, 1000); // sesuai durasi slideDown
+      quitOverlay.addEventListener('animationend', function handleAnimEnd() {
+        if (!isEscapeHolding) {
+          quitOverlay.style.display = 'none';
+          if (progressQuitBar) progressQuitBar.style.width = "0%";
+        }
+        quitOverlay.removeEventListener('animationend', handleAnimEnd);
+      });
     }
   }
 });
-
 
 const dasFrames = localStorage.getItem("das") !== null ? Math.round(parseFloat(localStorage.getItem("das"))) : 10;
 const arrFrames = localStorage.getItem("arr") !== null ? Math.round(parseFloat(localStorage.getItem("arr"))) : 2;
@@ -792,11 +810,7 @@ function drawDebris(ctx) {
 
   
 function tryRotate(direction) {
-
-    if (!player.type || typeof player.rotation !== "number") {
-    console.warn("🚫 Rotasi diblok: player belum siap", player);
-    return false;
-  }
+  if (!player.type || typeof player.rotation !== "number") return false;
 
   const originalMatrix = player.matrix;
   const rotatedMatrix = rotateMatrix(player.matrix, direction);
@@ -816,8 +830,7 @@ function tryRotate(direction) {
       player.pos = { ...testPos };
       player.rotation = to;
       rotatedLast = true;
-
-       // 🔍 Integrasi T-Spin setelah rotasi
+      usedWallkick = i > 0; // ✅ hanya true jika bukan offset pertama
       return true;
     }
   }
@@ -843,41 +856,60 @@ function tryRotate180() {
       player.pos = { ...testPos };
       player.rotation = to;
       rotatedLast = true;
-
-       // 🔍 Integrasi T-Spin
+      usedWallkick = i > 0; // ✅ dipastikan i sudah didefinisikan
       return true;
     }
   }
   return false;
 }
 
-window.detectTSpinType = function(player, arena, linesCleared, rotatedLast) {
-  if (player.type !== 'T' || !rotatedLast) return null;
+window.detectSpinType = function(player, arena, linesCleared) {
+  if (!lockedAfterRotate) return null;
 
-  const centerX = player.pos.x + 1;
-  const centerY = player.pos.y + 1;
+  const type = player.type;
+  const x = player.pos.x + 1;
+  const y = player.pos.y + 1;
 
   const corners = [
-    arena[centerY - 1]?.[centerX - 1], // top-left
-    arena[centerY - 1]?.[centerX + 1], // top-right
-    arena[centerY + 1]?.[centerX - 1], // bottom-left
-    arena[centerY + 1]?.[centerX + 1], // bottom-right
+    arena[y - 1]?.[x - 1],
+    arena[y - 1]?.[x + 1],
+    arena[y + 1]?.[x - 1],
+    arena[y + 1]?.[x + 1],
   ];
-
   const occupied = corners.filter(cell => cell && cell !== 0).length;
 
-  if (occupied >= 3) {
-    return linesCleared > 0 ? "T-SPIN" : "T-SPIN NO CLEAR";
-  } else if (linesCleared === 1) {
-    return "T-SPIN MINI";
-  }
+  const isMini = occupied < 3;
+  const spinLabel = `${type}-SPIN`;
 
+  if (["T", "L", "J", "S", "Z", "I"].includes(type)) {
+    if (occupied >= 3) {
+      if (linesCleared > 0) {
+        const suffix = ["SINGLE", "DOUBLE", "TRIPLE"][linesCleared - 1] || `${linesCleared} LINES`;
+        return `${spinLabel} ${suffix}`;
+      } else {
+        return `${spinLabel} NO CLEAR`;
+      }
+    } else if (linesCleared > 0 && isMini) {
+      return linesCleared === 1 ? `${spinLabel} MINI` :
+             linesCleared === 2 ? `${spinLabel} MINI DOUBLE` : null;
+    } else if (linesCleared === 0 && isMini) {
+      return `${spinLabel} MINI NO LINES`;
+    }
+  }
   return null;
 };
 
 // CW rotation
-function playerRotateCW() {
-  if (tryRotate(1)) {
+function playerRotateCCW() {
+  if (tryRotate(-1)) {
+    rotatedLast = true;
+
+    if (sounds.rotate) {
+      const sfx = sounds.rotate.cloneNode();
+      sfx.volume = sounds.rotate.volume;
+      sfx.play();
+    }
+
     if (lockPending && lockResetCount < MAX_LOCK_RESETS) {
       lockResetCount++;
       startLockDelay();
@@ -885,8 +917,16 @@ function playerRotateCW() {
   }
 }
 
-function playerRotateCCW() {
-  if (tryRotate(-1)) {
+function playerRotateCW() {
+  if (tryRotate(1)) {
+    rotatedLast = true;
+
+    if (sounds.rotate) {
+      const sfx = sounds.rotate.cloneNode();
+      sfx.volume = sounds.rotate.volume;
+      sfx.play();
+    }
+
     if (lockPending && lockResetCount < MAX_LOCK_RESETS) {
       lockResetCount++;
       startLockDelay();
@@ -896,12 +936,20 @@ function playerRotateCCW() {
 
 function playerRotate180() {
   if (tryRotate180()) {
+    rotatedLast = true;
+
+    if (sounds.rotate) {
+      const sfx = sounds.rotate.cloneNode();
+      sfx.volume = sounds.rotate.volume;
+      sfx.play();
+    }
+
     if (lockPending && lockResetCount < MAX_LOCK_RESETS) {
       lockResetCount++;
       startLockDelay();
     }
   }
-}    
+}
 
 function startLockDelay() {
     if (lockTimeout) clearTimeout(lockTimeout);
@@ -1079,114 +1127,119 @@ document.getElementById("Retrybutt")?.addEventListener("click", () => {
 });
 
 function arenaSweep() {
-let linesCleared = 0;
-const clearedRows = [];
-for (let y = 0; y < arena.length; ++y) {
-  if (arena[y].every(cell => cell !== 0)) {
-    clearedRows.push(y);            // ✅ SIMPAN BARIS YANG DICLEAR
-    arena.splice(y, 1);
-    arena.push(new Array(arena[0].length).fill(0));
-    player.score += 10 * player.level;
-    linesCleared++;
-    y--;
+  let linesCleared = 0;
+  const clearedRows = [];
+  for (let y = 0; y < arena.length; ++y) {
+    if (arena[y].every(cell => cell !== 0)) {
+      clearedRows.push(y);
+      arena.splice(y, 1);
+      arena.push(new Array(arena[0].length).fill(0));
+      player.score += 10 * player.level;
+      linesCleared++;
+      y--;
+    }
   }
-}
-// Tambahkan efek hanya pada baris yang dihapus
-if (clearedRows.length > 0) {
-  clearedRows.forEach(rowY => {
-    triggerFlash(rowY);   // Flash hanya di baris yang di-clear
-    spawnDebris(rowY);    // Debris jatuh di baris itu juga
-  });
-}
-if (linesCleared > 0) {
-  triggerFlash(); 
-  
-  const tspinType = window.detectTSpinType(player, arena, linesCleared, rotatedLast);
-  rotatedLast = false;
 
-  if (tspinType) {
-    congratsText.textContent = tspinType;
-  } if (!tspinType) {
-  const phrase = phrases[Math.floor(Math.random() * phrases.length)];
-  congratsText.textContent = phrase;
-}
+  if (clearedRows.length > 0) {
+    clearedRows.forEach(rowY => {
+      triggerFlash(rowY);
+      spawnDebris(rowY);
+    });
+  }
 
-comboCount += linesCleared;
-if (comboCount > highestCombo) highestCombo = comboCount;
-showComboTitle(linesCleared);
-const soundId = `combo${Math.min(comboCount, 16)}`;
-if (sounds[soundId]) {
-  sounds[soundId].currentTime = 0;
-  sounds[soundId].play();
-}
+  if (linesCleared > 0) {
+    triggerFlash();
 
-comboDisplay.textContent = `Combo x${comboCount}!`;
-comboDisplay.style.opacity = 1;
-clearTimeout(comboDisplayTimeout);
-comboDisplayTimeout = setTimeout(() => {
-  comboDisplay.style.opacity = 0;
-}, 1000);
+    // ✅ Tambahkan ini SEBELUM detectSpinType
+    lockedAfterRotate = rotatedLast && usedWallkick;
 
-sounds.lineclear.currentTime = 0;
-sounds.lineclear.play();
-player.lines += linesCleared;
+    const spinType = window.detectSpinType(player, arena, linesCleared);
 
-if (player.lines >= 40) {
-  hasCompleted40Lines = true;
-  setTimeout(() => {
-    isGameOver = true;              // ⛔ Hentikan update game loop
-    timerStarted = false;           // 🛑 Hentikan timer berjalan
-    
-        // 🔇 Matikan BGM dengan cara aman
-    const bgm = window.getCurrentBGM?.();
-    if (bgm) bgm.pause();
+    // ✅ Reset setelah pakai
+    rotatedLast = false;
+    usedWallkick = false;
+    lockedAfterRotate = false;
 
-    // 🔊 Putar sound game over jika tersedia
-    if (sounds.gameover) {
-      sounds.gameover.currentTime = 0;
-      sounds.gameover.play();
+    if (spinType) {
+      congratsText.textContent = spinType;
+      comboTitle.textContent = spinType;
+      comboTitle.style.opacity = 1;
+      setTimeout(() => comboTitle.style.opacity = 0, 1000);
     }
-    document.getElementById("completionOverlay").style.display = "flex";
-    elapsedTime = performance.now() - startTime;
-    document.getElementById("statTime").textContent = formatTime(elapsedTime);
-    document.getElementById("statScore").textContent = player.score;
-    document.getElementById("statPieces").textContent = totalPiecesDropped;
-    document.getElementById("statCombo").textContent = "x" + highestCombo;
-    document.getElementById("statHolds").textContent = holdCount;
-    document.getElementById("statLines").textContent = player.lines;
 
-    // Statistik tambahan
-      const totalSeconds = elapsedTime / 1000;
-      const pps = totalPiecesDropped / totalSeconds;
-      document.getElementById("statPPS").textContent = pps.toFixed(2);
-
-      document.getElementById("statKeys").textContent = totalKeysPressed;
-      document.getElementById("statKPP").textContent = (totalKeysPressed / totalPiecesDropped).toFixed(2);
-
-      const lpm = (player.lines / (totalSeconds / 60)).toFixed(0);
-      document.getElementById("statLPM").textContent = lpm;
-
-
-    const backBtn = document.getElementById("completionbackMode");
-    if (backBtn) {
-      backBtn.onclick = () => {
-        window.location.href = "select-mode.html";  // 🔙 Kembali ke halaman pemilihan mode
-      };
+    comboCount += linesCleared;
+    if (comboCount > highestCombo) highestCombo = comboCount;
+    showComboTitle(linesCleared);
+    const soundId = `combo${Math.min(comboCount, 16)}`;
+    if (sounds[soundId]) {
+      sounds[soundId].currentTime = 0;
+      sounds[soundId].play();
     }
-  }, 1000);
-}
-    } else {
+
+    comboDisplay.textContent = `Combo x${comboCount}!`;
+    comboDisplay.style.opacity = 1;
+    clearTimeout(comboDisplayTimeout);
+    comboDisplayTimeout = setTimeout(() => {
+      comboDisplay.style.opacity = 0;
+    }, 1000);
+
+    sounds.lineclear.currentTime = 0;
+    sounds.lineclear.play();
+    player.lines += linesCleared;
+
+    if (player.lines >= 40) {
+      hasCompleted40Lines = true;
+      setTimeout(() => {
+        isGameOver = true;
+        timerStarted = false;
+
+        const bgm = window.getCurrentBGM?.();
+        if (bgm) bgm.pause();
+
+        if (sounds.gameover) {
+          sounds.gameover.currentTime = 0;
+          sounds.gameover.play();
+        }
+        document.getElementById("completionOverlay").style.display = "flex";
+        elapsedTime = performance.now() - startTime;
+        document.getElementById("statTime").textContent = formatTime(elapsedTime);
+        document.getElementById("statScore").textContent = player.score;
+        document.getElementById("statPieces").textContent = totalPiecesDropped;
+        document.getElementById("statCombo").textContent = "x" + highestCombo;
+        document.getElementById("statHolds").textContent = holdCount;
+        document.getElementById("statLines").textContent = player.lines;
+
+        const totalSeconds = elapsedTime / 1000;
+        const pps = totalPiecesDropped / totalSeconds;
+        document.getElementById("statPPS").textContent = pps.toFixed(2);
+
+        document.getElementById("statKeys").textContent = totalKeysPressed;
+        document.getElementById("statKPP").textContent = (totalKeysPressed / totalPiecesDropped).toFixed(2);
+
+        const lpm = (player.lines / (totalSeconds / 60)).toFixed(0);
+        document.getElementById("statLPM").textContent = lpm;
+
+        const backBtn = document.getElementById("completionbackMode");
+        if (backBtn) {
+          backBtn.onclick = () => {
+            window.location.href = "select-mode.html";
+          };
+        }
+      }, 1000);
+    }
+  } else {
     if (comboCount > 0) {
       comboCount = 0;
       sounds.comboBreak.currentTime = 0;
       sounds.comboBreak.play();
       comboDisplay.style.opacity = 0;
     }
-    }
-    if (comboCount > highestCombo) {
-        highestCombo = comboCount;
-    }
   }
+
+  if (comboCount > highestCombo) {
+    highestCombo = comboCount;
+  }
+}
   
   function updateScore() {
     const scoreElement = document.getElementById('score');
@@ -1305,12 +1358,6 @@ document.addEventListener('keydown', (e) => {
 
   const action = activeKeyBindings[key];
   if (!player.matrix || !player.type) return;
-
-  if (action === "exit") {
-    if (escHoldTimeout) return;
-    window.location.href = "select-mode.html";
-    return;
-  }
 
   const keysToPrevent = [" ", "arrowup", "arrowdown", "arrowleft", "arrowright", "escape"];
   if (keysToPrevent.includes(key)) {
