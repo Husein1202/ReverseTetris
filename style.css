@@ -982,6 +982,25 @@ transform: translateX(0);
   text-transform: uppercase;
 }
 
+#undoAlert {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 1.4rem;
+  color: white;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 1s ease;
+  text-align: center;
+  z-index: 50;
+}
+
+#undoAlert.show {
+  opacity: 1;
+}
+
+
 #backMode {
   font-size: 1.2em;
   padding: 10px 20px;

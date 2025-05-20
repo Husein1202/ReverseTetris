@@ -811,7 +811,7 @@ function drawDebris(ctx) {
         const ay = y + pos.y;
         const ax = x + pos.x;
 
-        // ❌ Posisi terlalu kiri/kanan/bawah → ditolak
+        // ❌ Posisi terlalu kiri/kanan/bawah → ditolak`
         if (
           ax < 0 || ax >= arena[0].length ||
           ay < 0 || ay >= arena.length

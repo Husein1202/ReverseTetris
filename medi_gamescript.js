@@ -81,17 +81,16 @@ let activeControlSlot = parseInt(localStorage.getItem("activeControlSlot")) || 1
 let activeKeyBindings = {};
 
 function applyActiveControlBindings() {
-  const saved = JSON.parse(localStorage.getItem(`customControlsSlot${activeControlSlot}`)) || defaultControls;
-
+const saved = JSON.parse(localStorage.getItem(`customControlsSlot${activeControlSlot}`)) || { ...defaultControls };
   activeKeyBindings = {};
 
-  for (const [action, keyString] of Object.entries(saved)) {
-    if (!keyString) continue;
-    keyString.split("|").forEach(k => {
-      if (k.trim() !== "") {
-        activeKeyBindings[k.toLowerCase()] = action;
-      }
-    });
+  for (const action in saved) {
+    const keys = saved[action].split("|");
+    for (const k of keys) {
+      ["", "ctrl+", "shift+", "alt+"].forEach(prefix => {
+        activeKeyBindings[`${prefix}${k.toLowerCase()}`] = action; // fix: keep action unmodified
+      });
+    }
   }
 }
 
@@ -262,6 +261,12 @@ let escHoldTimeout = null;
 let escStartTime = null;
 let escAnimationFrame = null;
 let escKeyIsDown = false;
+let lastState = null;
+let undoUsed = false;
+let undoStack = [];
+let isCtrlZPressed = false;
+
+
 
 
 const dasFrames = localStorage.getItem("das") !== null ? Math.round(parseFloat(localStorage.getItem("das"))) : 10;
@@ -563,7 +568,20 @@ function drawDebris(ctx) {
       createdAt: performance.now(),
       duration: 600
     });
-  
+    undoStack.push({
+      player: {
+        matrix: player.matrix.map(r => [...r]),
+        pos: { ...player.pos },
+        rotation: player.rotation,
+        flip180: player.flip180
+      },
+      arena: arena.map(row => [...row]),
+      bag: [...bag],
+      next: {
+        matrix: player.next.matrix.map(r => [...r]),
+        type: player.next.type
+      }
+    });
     merge(arena, player);
     hold.hasHeld = false;
     arenaSweep();
@@ -574,29 +592,37 @@ function drawDebris(ctx) {
   
   }
     
-  function startLockDelay() {
-    if (lockTimeout) clearTimeout(lockTimeout);
+function startLockDelay() {
+  if (lockTimeout) clearTimeout(lockTimeout);
+
+  lockTimeout = setTimeout(() => {
+    // Cek apakah MASIH MENYENTUH dasar
+    player.pos.y--;
+    const stillTouching = collide(arena, player);
+    player.pos.y++; // restore posisi
   
-    lockTimeout = setTimeout(() => {
-      // Cek apakah MASIH MENYENTUH dasar
-      player.pos.y--;
-      const stillTouching = collide(arena, player);
-      player.pos.y++; // restore posisi
-    
-      if (!stillTouching) {
-        lockPending = false;
-        return;
-      }
-    
-      merge(arena, player);
-      hold.hasHeld = false;
-      arenaSweep();
-      playerReset();
+    if (!stillTouching) {
       lockPending = false;
-      lockResetCount = 0;
-      landedY = null;
-    }, LOCK_DELAY_MS);
-      }
+      return;
+    }    
+    undoStack.push({
+      player: {
+        matrix: player.matrix.map(row => [...row]),
+        pos: { ...player.pos },
+        rotation: player.rotation,
+        flip180: player.flip180
+      },
+      arena: arena.map(row => [...row])
+    });
+    merge(arena, player);
+    hold.hasHeld = false;
+    arenaSweep();
+    playerReset();
+    lockPending = false;
+    lockResetCount = 0;
+    landedY = null;
+  }, LOCK_DELAY_MS);
+}
     
             
       function playerDrop() {
@@ -605,6 +631,12 @@ function drawDebris(ctx) {
       
         player.pos.y--;
         if (collide(arena, player)) {
+          lastState = {
+          matrix: player.matrix.map(row => [...row]),
+          pos: { ...player.pos },
+          rotation: player.rotation,
+          flip180: player.flip180
+        };
           player.pos.y++;
           
           if (!lockPending) {
@@ -618,6 +650,13 @@ function drawDebris(ctx) {
       }
       
       function playerMove(dir) {
+      lastState = {
+          matrix: player.matrix.map(row => [...row]),
+          pos: { ...player.pos },
+          rotation: player.rotation,
+          flip180: player.flip180
+        };
+
         player.pos.x += dir;
       
         if (collide(arena, player)) {
@@ -809,6 +848,13 @@ window.detectSpinType = function(player, arena, linesCleared) {
 };
 
 function playerRotateCCW() {
+  lastState = {
+    matrix: player.matrix.map(row => [...row]),
+    pos: { ...player.pos },
+    rotation: player.rotation,
+    flip180: player.flip180
+  };
+
   if (tryRotate(-1)) {
     rotatedLast = true;
 
@@ -826,6 +872,13 @@ function playerRotateCCW() {
 }
 
 function playerRotateCW() {
+lastState = {
+  matrix: player.matrix.map(row => [...row]),
+  pos: { ...player.pos },
+  rotation: player.rotation,
+  flip180: player.flip180
+  };
+
   if (tryRotate(1)) {
     rotatedLast = true;
 
@@ -843,6 +896,13 @@ function playerRotateCW() {
 }
 
 function playerRotate180() {
+    lastState = {
+    matrix: player.matrix.map(row => [...row]),
+    pos: { ...player.pos },
+    rotation: player.rotation,
+    flip180: player.flip180
+  };
+
   rotatedLast = true;
 
   if (sounds.rotate) {
@@ -1180,6 +1240,14 @@ function resetGame() {
 
 }
 
+function getInputKey(e) {
+  let mod = "";
+  if (e.ctrlKey) mod += "ctrl+";
+  if (e.shiftKey) mod += "shift+";
+  if (e.altKey) mod += "alt+";
+  return mod + e.key.toLowerCase();
+}
+
   let pendingBind = null;
 
   document.querySelectorAll(".custom-key").forEach(el => {
@@ -1218,12 +1286,57 @@ window.addEventListener("keydown", (e) => {
   pendingBind = null;
 });  
 
-document.addEventListener('keydown', (e) => {
+document.addEventListener("keydown", (e) => {
+  const inputKey = getInputKey(e);
+
+  // ✅ UNDO MULTISTEP
+  if (inputKey === "ctrl+z" && undoStack.length > 0 && !isCtrlZPressed) {
+    e.preventDefault();
+    isCtrlZPressed = true;
+
+    const last = undoStack.pop();
+    for (let y = 0; y < arena.length; y++) {
+      arena[y] = last.arena[y].slice();
+    }
+    player.matrix = last.player.matrix.map(r => [...r]);
+    player.pos = {
+      x: Math.floor(arena[0].length / 2) - Math.floor(last.player.matrix[0].length / 2),
+      y: arena.length - last.player.matrix.length
+    };
+    player.rotation = last.player.rotation;
+    player.flip180 = last.player.flip180;
+    bag = [...last.bag];
+    player.next = {
+      matrix: last.next.matrix.map(r => [...r]),
+      type: last.next.type
+    };
+
+    lockPending = false;
+    lockResetCount = 0;
+    dropCounter = 0;
+
+    const undoAlert = document.getElementById("undoAlert");
+    if (undoAlert) {
+      undoAlert.classList.add("show");
+      setTimeout(() => {
+        undoAlert.classList.remove("show");
+      }, 1200);
+    }
+
+    const undoSound = document.getElementById("undo");
+    if (undoSound) {
+  undoSound.currentTime = 0; // restart jika diputar sebelumnya
+  undoSound.play();
+}
+
+    return;
+  }
+
   const key = e.key.toLowerCase();
   if (pressedKeys.has(key)) return;
   pressedKeys.add(key);
 
-  const action = activeKeyBindings[key];
+  const action = activeKeyBindings[inputKey];
   if (!player.matrix || !player.type) return;
 
   const keysToPrevent = [" ", "arrowup", "arrowdown", "arrowleft", "arrowright", "escape"];
@@ -1289,26 +1402,28 @@ document.addEventListener('keydown', (e) => {
   totalKeysPressed++;
 });
 
+// ✅ Tambahkan di event keyup
+
 document.addEventListener("keyup", (e) => {
   const key = e.key.toLowerCase();
+  if (key === "z" && isCtrlZPressed) {
+    isCtrlZPressed = false;
+  }
   pressedKeys.delete(key);
 
-  const action = activeKeyBindings[key];
+  const action = activeKeyBindings[getInputKey(e)];
   if (action === "left") {
     moveHoldDir = 0;
     initialMovePending = false;
     tapLeft = false;
-
   } else if (action === "right") {
     moveHoldDir = 0;
     initialMovePending = false;
     tapRight = false;
-
   } else if (action === "softdrop") {
     isSoftDropping = false;
   }
 });
-
   pauseButton.onclick = () => {
     isPaused = !isPaused;
     pauseButton.textContent = isPaused ? 'Resume' : 'Pause';
@@ -1535,7 +1650,7 @@ if (Date.now() - escHoldStartTime < HOLD_DURATION) {
 
 // Saat tombol ESCAPE ditekan pertama kali
 document.addEventListener("keydown", function(e) {
-  if (e.key === "Escape" && !escKeyIsDown && !hasTriggeredQuit) {
+if (e.key === "Escape" && !escKeyIsDown && !hasTriggeredQuit) {
     escKeyIsDown = true;
     isEscapeHolding = true;
 
