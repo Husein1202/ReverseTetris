@@ -208,6 +208,7 @@ if (mode === 'solo' && !solo) {
     lines: 0,
     next: null,
     rotation: 0,
+    flip180: false
   };
 
 let dropCounter = 0;
@@ -351,60 +352,60 @@ function getNextPiece() {
 
 // Menggambar matriks (tetromino, ghost, hold) ke canvas di posisi tertentu //
 function drawMatrix(matrix, offset, ctx, ghost = false) {
-    const glowColors = {
-      1: 'rgba(255, 0, 102, 0.7)',    // T
-      2: 'rgba(255, 204, 0, 0.7)',    // O
-      3: 'rgba(255, 128, 0, 0.7)',    // L
-      4: 'rgba(0, 0, 255, 0.7)',      // J
-      5: 'rgba(0, 204, 255, 0.7)',    // I
-      6: 'rgba(102, 255, 0, 0.7)',    // S
-      7: 'rgba(255, 0, 255, 0.7)'     // Z
-    };
-  
-    matrix.forEach((row, y) => {
-      row.forEach((value, x) => {
-        if (value !== 0) {
-          const drawX = x + offset.x;
-          const drawY = y + offset.y;
-  
-          if (ghost) {
-            // Gambar ghost piece (tetap sama)
-            ctx.save();
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
-            ctx.lineWidth = 0.05;
-            ctx.shadowColor = 'rgba(255, 255, 255, 0.4)';
-            ctx.shadowBlur = 6;
-  
-            ctx.fillRect(drawX, drawY, 1, 1);
-            ctx.strokeRect(drawX, drawY, 1, 1);
-            ctx.restore();
-          } 
-          else if (value === 8) {
-            ctx.drawImage(cheeseImage, drawX, drawY, 1, 1);
+  const glowColors = {
+    1: 'rgba(255, 0, 102, 0.7)',    // T - merah muda
+    2: 'rgba(255, 204, 0, 0.7)',    // O - kuning
+    3: 'rgba(255, 128, 0, 0.7)',    // L - oranye
+    4: 'rgba(0, 0, 255, 0.7)',      // J - biru tua
+    5: 'rgba(0, 204, 255, 0.7)',    // I - biru muda
+    6: 'rgba(102, 255, 0, 0.7)',    // S - hijau
+    7: 'rgba(255, 0, 255, 0.7)'     // Z - pink terang
+  };
 
-          } else {
-            // Normal piece pakai image dan glow
-            ctx.save();
-            ctx.shadowColor = glowColors[value] || 'transparent';
-            ctx.shadowBlur = 10;
-            if (value === 8) {
-                ctx.drawImage(cheeseImage, drawX, drawY, 1, 1);
-              } else {
-                ctx.drawImage(
-                  blockImage,
-                  (value - 1) * TILE_SIZE, 0, TILE_SIZE, TILE_SIZE,
-                  drawX, drawY, 1, 1
-                );
-              }
-            
-            ctx.shadowBlur = 0;
-            ctx.restore();
+  matrix.forEach((row, y) => {
+    row.forEach((value, x) => {
+      if (value !== 0) {
+        const drawX = x + offset.x;
+        const drawY = y + offset.y;
+
+        if (ghost) {
+          ctx.save();
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';     // isi transparan
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';     // outline putih terang
+          ctx.lineWidth = 0.05;
+          ctx.shadowColor = 'rgba(255, 255, 255, 0.4)';     // glow putih
+          ctx.shadowBlur = 6;
+
+          ctx.fillRect(drawX, drawY, 1, 1);
+          ctx.strokeRect(drawX, drawY, 1, 1);
+          ctx.restore();
+        } else {
+          ctx.save();
+
+          // ✅ Tambahkan ini untuk flip visual 180 derajat
+          if (matrix === player.matrix && player.flip180 && !ghost) {
+            const centerX = offset.x + matrix[0].length / 2;
+            const centerY = offset.y + matrix.length / 2;
+
+            ctx.translate(centerX, centerY);
+            ctx.rotate(Math.PI); // rotasi 180 derajat
+            ctx.translate(-centerX, -centerY);
           }
+
+          ctx.shadowColor = glowColors[value] || 'transparent';
+          ctx.shadowBlur = 10;
+          ctx.drawImage(
+            blockImage,
+            (value - 1) * TILE_SIZE, 0, TILE_SIZE, TILE_SIZE,
+            drawX, drawY, 1, 1
+          );
+          ctx.shadowBlur = 0;
+          ctx.restore();
         }
-      });
+      }
     });
-  }
+  });
+}
   
 let flashLines = [];
 
@@ -828,20 +829,21 @@ function playerRotateCW() {
 }
 
 function playerRotate180() {
-  if (tryRotate180()) {
-    rotatedLast = true;
+  rotatedLast = true;
 
-    if (sounds.rotate) {
-      const sfx = sounds.rotate.cloneNode();
-      sfx.volume = sounds.rotate.volume;
-      sfx.play();
-    }
-
-    if (lockPending && lockResetCount < MAX_LOCK_RESETS) {
-      lockResetCount++;
-      startLockDelay();
-    }
+  if (sounds.rotate) {
+    const sfx = sounds.rotate.cloneNode();
+    sfx.volume = sounds.rotate.volume;
+    sfx.play();
   }
+
+  if (lockPending && lockResetCount < MAX_LOCK_RESETS) {
+    lockResetCount++;
+    startLockDelay();
+  }
+
+  // ✅ Tambahkan flag flip visual
+  player.flip180 = !player.flip180;
 }
 
 function merge(arena, player) {

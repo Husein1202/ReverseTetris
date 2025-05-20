@@ -380,6 +380,7 @@ if (mode === 'solo' && !solo) {
     level: 1,
     lines: 0,
     next: null,
+    flip180: false
   };
 
   let dropCounter = 0;
@@ -517,9 +518,18 @@ function drawMatrix(matrix, offset, ctx, ghost = false) {
           ctx.strokeRect(drawX, drawY, 1, 1);
           ctx.restore();
         } else {
-
-          // Normal piece with glow
           ctx.save();
+
+          // ✅ Tambahkan ini untuk flip visual 180 derajat
+          if (matrix === player.matrix && player.flip180 && !ghost) {
+            const centerX = offset.x + matrix[0].length / 2;
+            const centerY = offset.y + matrix.length / 2;
+
+            ctx.translate(centerX, centerY);
+            ctx.rotate(Math.PI); // rotasi 180 derajat
+            ctx.translate(-centerX, -centerY);
+          }
+
           ctx.shadowColor = glowColors[value] || 'transparent';
           ctx.shadowBlur = 10;
           ctx.drawImage(
@@ -935,20 +945,21 @@ function playerRotateCW() {
 }
 
 function playerRotate180() {
-  if (tryRotate180()) {
-    rotatedLast = true;
+  rotatedLast = true;
 
-    if (sounds.rotate) {
-      const sfx = sounds.rotate.cloneNode();
-      sfx.volume = sounds.rotate.volume;
-      sfx.play();
-    }
-
-    if (lockPending && lockResetCount < MAX_LOCK_RESETS) {
-      lockResetCount++;
-      startLockDelay();
-    }
+  if (sounds.rotate) {
+    const sfx = sounds.rotate.cloneNode();
+    sfx.volume = sounds.rotate.volume;
+    sfx.play();
   }
+
+  if (lockPending && lockResetCount < MAX_LOCK_RESETS) {
+    lockResetCount++;
+    startLockDelay();
+  }
+
+  // ✅ Tambahkan flag flip visual
+  player.flip180 = !player.flip180;
 }
 
 function startLockDelay() {
@@ -1057,6 +1068,7 @@ if (collide(arena, player)) {
   return;
 }
   totalPiecesDropped++;
+  player.flip180 = false
 
 }
 
