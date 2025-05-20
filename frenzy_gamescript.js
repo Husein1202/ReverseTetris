@@ -475,6 +475,20 @@ function drawMatrix(matrix, offset, ctx, ghost = false) {
   });
 }
 
+// Fungsi untuk menampilkan teks spin di bawah holdCanvas
+function showSpinMessage(text) {
+  const spinMsg = document.getElementById('spinMessage');
+  if (!spinMsg) return;
+
+  spinMsg.textContent = text;
+  spinMsg.classList.add('show');
+
+  setTimeout(() => {
+    spinMsg.classList.remove('show');
+  }, 1000); // durasi tampil 1 detik
+}
+
+
 let flashLines = [];
 
 function triggerFlash(rowY) {
@@ -1100,7 +1114,7 @@ function arenaSweep() {
     lockedAfterRotate = false;
 
     if (spinType) {
-      congratsText.textContent = spinType;
+      showSpinMessage(spinType);
       comboTitle.textContent = spinType;
       comboTitle.style.opacity = 1;
       setTimeout(() => comboTitle.style.opacity = 0, 1000);
