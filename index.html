@@ -35,71 +35,81 @@
     </div>
   </div>
 
-<script src="script.js"></script>
+
+<!-- 🔐 Auth Popup UI -->
+<div id="authPopup" class="frost-popup" data-mode="" style="display: none;">
+  <div class="frost-box">
+    <div class="neon-border"></div>
+
+    <!-- Register State -->
+    <div id="popupStateRegister" class="popup-state">
+      <h3 class="popup-title" id="registerNicknameTitle" style="display: none;"></h3>
+      <div class="popup-line"></div>
+      <h4 class="popup-title">DO YOU WANT MAKE IT OFFICIAL ?</h4>
+      <p class="popup-msg">TO REGISTER, PLEASE CREATE A PASSWORD (MINIMUM 8 CHARACTER)</p>
+      <p class="popup-msg-enter-pass">Create your password :</p>
+    </div>
+
+    <!-- Login State -->
+    <div id="popupStateLogin" class="popup-state">
+      <h3 class="popup-title" id="loginWelcomeTitle"></h3>
+       <div class="popup-line"></div>
+      <p class="popup-msg-enter-pass">Bet you missed us. Insert your password to continue :</p>
+    </div>
+
+    <!-- Error State -->
+    <div id="popupStateError" class="popup-state">
+      <h3 class="popup-title">Something went wrong</h3>
+      <p class="popup-msg">Unexpected error occurred. Please try again.</p>
+    </div>
+
+    <!-- Input -->
+  <div class="password-group" id="passwordGroup">
+    <input type="password" id="popupPasswordInput" placeholder="Insert your password" tabindex="1"/>
+    <span class="toggle-eye" id="togglePassword">
+      <img src="mynaui--eye.svg" alt="Show Password" />
+    </span>
+  </div>
+
+  <div class="password-group" id="retypeGroup">
+    <input type="password" id="popupRetypeInput" placeholder="Retype your password" tabindex="2" />
+    <span class="toggle-eye" id="toggleRetype">
+      <img src="mynaui--eye.svg" alt="Show Password" />
+    </span>
+  </div>
+
+    <p id="passwordWarning" class="warning-text" style="display: none;"></p>
+    <p class="password-note">Do not enter your birthday or even 12345678</p>
+
+    <div class="popup-buttons">
+      <button id="popupConfirmButton" class="btn-approve" tabindex="3">CONTINUE</button>
+      <button id="popupCancelButton" class="btn-cancel" tabindex="4">CANCEL</button>
+    </div>
+  </div>
+</div>
 <script>
-  window.onload = () => {
-    // Ensure that the window.coolNicknames array is defined
-    if (!window.coolNicknames) {
-      window.coolNicknames = [
-        "TetehTetris", "BlokGagal", "SalahNgetik", "SiLemot", "CieNoob",
-        "FrostByte", "SiPanik", "GaPernahMenang", "BlokManaBlok", "CipungTetris",
-        "MainSendiri", "ComboNgaco", "PakTetris", "MalesMain", "GaAdaSkill",
-        "SkuyMain", "KambingNgeLag", "BudeTetris", "UjangGaming", "KlikAjaDulu"
-      ];
-    }
-
-    const joinButton = document.getElementById('joinButton');
-    const nicknameInput = document.getElementById('nicknameInput');
-    
-    // Check if the elements exist before attaching the event listener
-    if (joinButton && nicknameInput) {
-      joinButton.addEventListener('click', () => {
-        let name = nicknameInput.value.trim();
-
-        // If no name, pick a random name from the array
-        if (!name) {
-          name = window.coolNicknames[Math.floor(Math.random() * window.coolNicknames.length)];
-        }
-
-        // Save the nickname and redirect
-        localStorage.setItem('nickname', name);
-        window.location.href = 'select-mode.html'; // Redirect to the next page
-      });
-    }
-  };
+  window.coolNicknames = [
+    "TetehTetris", "BlokGagal", "SalahNgetik", "SiLemot", "CieNoob",
+    "FrostByte", "SiPanik", "GaPernahMenang", "BlokManaBlok", "CipungTetris",
+    "MainSendiri", "ComboNgaco", "PakTetris", "MalesMain", "GaAdaSkill",
+    "SkuyMain", "KambingNgeLag", "BudeTetris", "UjangGaming", "KlikAjaDulu"
+  ];
 </script>
-
-  <audio id="buttonSound" src="hit.mp3" preload="auto"></audio>
-  <script>
-    const buttonSound = document.getElementById("buttonSound");
-  
-    function playButtonSound() {
-      if (buttonSound) {
-        buttonSound.currentTime = 0;
-        buttonSound.play().catch(() => {}); 
+    <script>
+      const starfield = document.querySelector('.starfield');
+      for (let i = 0; i < 100; i++) {
+        const star = document.createElement('div');
+        star.className = 'star';
+        star.style.top = `${Math.random() * 100}%`;
+        star.style.left = `${Math.random() * 100}%`;
+        star.style.animationDelay = `${Math.random() * 5}s`;
+        starfield.appendChild(star);
       }
-    }
-  
-    document.addEventListener("DOMContentLoaded", () => {
-      document.querySelectorAll("button").forEach(btn => {
-        btn.addEventListener("mouseenter", playButtonSound);
-        btn.addEventListener("click", playButtonSound);
-      });
-    });
-  </script>
+    </script>
 
-<script>
-  const starfield = document.querySelector('.starfield');
-  for (let i = 0; i < 100; i++) {
-    const star = document.createElement('div');
-    star.className = 'star';
-    star.style.top = `${Math.random() * 100}%`;
-    star.style.left = `${Math.random() * 100}%`;
-    star.style.animationDelay = `${Math.random() * 5}s`;
-    starfield.appendChild(star);
-  }
-</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+<script src="supabaseClient.js"></script>
+<script src="auth-script.js"></script>
 
-  
   </body>
 </html>
