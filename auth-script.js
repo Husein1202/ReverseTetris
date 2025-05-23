@@ -196,6 +196,7 @@ if (isRegisterFlow) {
       }
 
       localStorage.setItem("nickname", currentNickname);
+      localStorage.setItem("isRegisteredUser", "true");
       window.location.href = "select-mode.html";
     } else {
       const { data, error } = await supabase
@@ -217,6 +218,7 @@ if (isRegisterFlow) {
       }
 
       localStorage.setItem("nickname", currentNickname);
+      localStorage.setItem("isRegisteredUser", "true");
       window.location.href = "select-mode.html";
     }
   });

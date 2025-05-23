@@ -187,11 +187,51 @@ if (mode === 'solo' && !solo) {
     const seconds = totalSeconds % 60;
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   }
+let lastFrenzyAlert = null;
+
+let overlayTimeout = null;
+let overlayRemaining = null;
+let overlayPausedAt = null;
+
+
+function showFrenzyOverlayText(text, duration = 2000) {
+  const el = document.getElementById("frenzyOverlayMessage");
+  if (!el) return;
+
+  el.innerHTML = text;
+  el.style.display = "block";
+  el.style.animation = "none";
+  void el.offsetWidth;
+  el.style.animation = "fadeOverlay 0.3s ease-out";
+
+  if (overlayTimeout) clearTimeout(overlayTimeout);
+  overlayRemaining = duration;
+  overlayPausedAt = performance.now();
+
+  overlayTimeout = setTimeout(() => {
+    el.style.display = "none";
+    overlayTimeout = null;
+  }, duration);
+}
+
 
 function updateFrenzyTimer(deltaTime) {
   if (isPaused || isGameOver || !timerStarted) return;
 
   FrenzyTimeRemaining -= deltaTime;
+
+const timeSec = Math.floor(FrenzyTimeRemaining / 1000);
+
+if (timeSec === 60 && lastFrenzyAlert !== 60) {
+  showFrenzyOverlayText("60s Remaining", 2000);
+  lastFrenzyAlert = 60;
+} else if (timeSec === 30 && lastFrenzyAlert !== 30) {
+showFrenzyOverlayText("30s Remaining", 2000);
+  lastFrenzyAlert = 30;
+} else if (timeSec <= 10 && timeSec > 0 && lastFrenzyAlert !== timeSec) {
+  showFrenzyOverlayText(`${timeSec}`, 1000);
+  lastFrenzyAlert = timeSec;
+}
 
   if (FrenzyTimeRemaining <= 0) {
     FrenzyTimeRemaining = 0;
@@ -216,8 +256,8 @@ function updateFrenzyTimer(deltaTime) {
 
     // ✅ Tampilkan overlay dan statistik seperti biasa...
     document.getElementById("completionOverlay").style.display = "flex";
-    document.getElementById("finalScoreDisplay").textContent = player.score;
-    document.getElementById("statScore").textContent = player.score;
+    document.getElementById("finalScoreDisplay").textContent = player.score.toLocaleString("id-ID");
+    document.getElementById("statScore").textContent = player.score.toLocaleString("id-ID");
 
     const totalElapsed = Date.now() - gameStartTime;
     const totalSeconds = totalElapsed / 1000;
@@ -234,7 +274,29 @@ function updateFrenzyTimer(deltaTime) {
     document.getElementById("statHolds").textContent = holdCount;
 
     const lpm = (player.lines / (totalSeconds / 60)).toFixed(0);
-    document.getElementById("statLPM").textContent = lpm;
+document.getElementById("statLPM").textContent = lpm;
+
+const nickname = localStorage.getItem("nickname") || "Player";
+const isRegistered = localStorage.getItem("isRegisteredUser") === "true";
+
+const result = {
+  nickname,
+  mode: "FRENZY",
+  score: player.score,
+  time: null,
+  time_ms: null,
+  pieces: totalPiecesDropped,
+  pps: pps,
+  kpp: totalPiecesDropped > 0 ? (totalKeysPressed / totalPiecesDropped) : 0,
+  kps: totalSeconds > 0 ? (totalKeysPressed / totalSeconds) : 0,
+  holds: holdCount,
+  level: player.level,
+};
+
+// ✅ Kirim hanya jika fungsi ada & user bukan guest
+if (typeof uploadScore === "function" && isRegistered) {
+  uploadScore(result);
+}
 
     const backBtn = document.getElementById("completionbackMode");
     if (backBtn) {
@@ -250,7 +312,6 @@ function updateFrenzyTimer(deltaTime) {
     }
   }
 }
-  
 
   const sounds = {
     rotate: document.getElementById('rotate'),
@@ -276,6 +337,28 @@ function updateFrenzyTimer(deltaTime) {
 
   let comboCount = 0;
   const arena = createMatrix(12, 30);
+
+function getBlitzGravity(level) {
+  if (level === 1) return 0.015; // super lambat
+  const speedMap = {
+    2: 0.035,
+    3: 0.065, 
+    4: 0.12, 
+    5: 0.22,
+    6: 0.4,
+    7: 0.7,
+    8: 1.2,
+    9: 2.2,
+    10: 4,
+    11: 7,
+    12: 12,
+    13: 20,
+    14: 40,
+    15: 80
+  };
+  return speedMap[level] || 150; // hard cap di 150G
+}
+
   const player = {
     pos: { x: 0, y: 0 },
     matrix: null,
@@ -288,6 +371,11 @@ function updateFrenzyTimer(deltaTime) {
 
   let dropCounter = 0;
   let dropInterval = 1000;
+  let gravity = 0.015; 
+  let sdfMultiplier = parseFloat(localStorage.getItem("sdf")) || 6;
+  sdfMultiplier = Math.min(Math.max(sdfMultiplier, 1), 50); // pastikan antara 1–50x
+  let effectiveGravity = gravity;
+  let gravityCounter = 0;
   let lastTime = 0;
   let isGameOver = false;
   let isPaused = false;
@@ -329,14 +417,22 @@ function updateFrenzyTimer(deltaTime) {
   let escStartTime = null;
   let escAnimationFrame = null;
   let escKeyIsDown = false;
+  let linesInCurrentLevel = 0;
 
 
+
+const levelProgress = [];
+let total = 0;
+for (let i = 0; i < 100; i++) {
+  const required = 2 * i + 3;
+  total += required;
+  levelProgress[i] = total;
+}
 
 
   const dasFrames = localStorage.getItem("das") !== null ? Math.round(parseFloat(localStorage.getItem("das"))) : 10;
   const arrFrames = localStorage.getItem("arr") !== null ? Math.round(parseFloat(localStorage.getItem("arr"))) : 2;
   const sdfSpeed = localStorage.getItem("sdf") !== null ? parseFloat(localStorage.getItem("sdf")) : 6;
-  const sdfFrames = Math.round(60 / (sdfSpeed * 2)); // 6X = 5F
 
   const SOFT_DROP_INTERVAL = 40; // kamu bisa tweak ini sesuai feel
   
@@ -403,7 +499,7 @@ function createPiece(type) {
     type: type
   };
 }
-  
+
   function randomType() {
     const types = 'TJLOSZI';
     return types[Math.floor(Math.random() * types.length)];
@@ -659,7 +755,6 @@ if (arenaContainer) {
       player.pos.y++;
       
       if (!lockPending) {
-        console.log('[LOCK] Piece landed. Starting lock delay...');
         lockPending = true;
         landedY = player.pos.y; // simpan posisi saat landed
         startLockDelay();
@@ -938,11 +1033,9 @@ function playerRotate180() {
     
       if (!stillTouching) {
         lockPending = false;
-        console.log('[LOCK CANCELLED] No longer touching');
         return;
       }
     
-      console.log('[LOCK COMMIT] Piece locked');
       merge(arena, player);
       hold.hasHeld = false;
       arenaSweep();
@@ -1000,8 +1093,6 @@ function playerReset() {
   player.rotation = 0;
 
 if (collide(arena, player)) {
-  console.log("💀 Topout → tampilkan overlay");
-
   isGameOver = true;
   timerStarted = false;
 
@@ -1019,8 +1110,8 @@ if (collide(arena, player)) {
   const totalElapsed = Date.now() - gameStartTime;
   const totalSeconds = totalElapsed / 1000;
 
-  document.getElementById("finalScoreDisplay").textContent = player.score;
-  document.getElementById("statScore").textContent = player.score;
+  document.getElementById("finalScoreDisplay").textContent = player.score.toLocaleString("id-ID");
+  document.getElementById("statScore").textContent = player.score.toLocaleString("id-ID");
   document.getElementById("statPieces").textContent = totalPiecesDropped;
   document.getElementById("statPPS").textContent = (totalPiecesDropped / totalSeconds).toFixed(2);
   document.getElementById("statKeys").textContent = totalKeysPressed;
@@ -1073,6 +1164,15 @@ function startRestartSequence() {
     arena[y].fill(0);
   }
 
+linesInCurrentLevel = 0;
+player.level = 1;
+gravity = 0.015;
+sdfMultiplier = 6;
+gravityCounter = 0;
+document.getElementById("frenz-Level").textContent = "1";
+document.getElementById("frenz-Lines").textContent = "0/3";
+
+
   // Reset player
   hold.matrix = null;
   hold.hasHeld = false;
@@ -1099,9 +1199,23 @@ function clearHoldCanvas() {
 }
 
 document.getElementById("Retrybutt")?.addEventListener("click", () => {
-  console.log("🔁 Retry clicked");
   startRestartSequence();
 });
+
+function calculateScore(linesCleared, level, comboCount) {
+  const baseScores = [0, 100, 300, 500, 800];
+  let base = baseScores[linesCleared] || 0;
+
+  // Multiplier level
+  let score = base * level;
+
+  // Bonus combo (x50 per combo stack)
+  if (comboCount > 1) {
+    score += (comboCount - 1) * 50;
+  }
+
+  return score;
+}
 
 
 function arenaSweep() {
@@ -1166,13 +1280,31 @@ function arenaSweep() {
 
     player.lines += linesCleared;
 
-    const newLevel = Math.floor(player.lines / 40) + 1;
-    if (newLevel !== player.level) {
-      player.level = newLevel;
-      dropInterval = Math.max(100, 1000 - (player.level - 1) * 100);
-      sounds.levelup.currentTime = 0;
-      sounds.levelup.play();
+    // 🔥 Hitung skor
+    const gained = calculateScore(linesCleared, player.level, comboCount);
+    player.score += gained;
+
+    linesInCurrentLevel += linesCleared;
+    let currentNeeded = 2 * player.level + 1;
+    sdfMultiplier = player.level === 1 ? 6 : (parseFloat(localStorage.getItem("sdf")) || 6);
+
+    if (linesInCurrentLevel >= currentNeeded) {
+        player.level++;
+        linesInCurrentLevel = 0;
+
+        gravity = getBlitzGravity(player.level);
+
+        if (sounds.levelup) {
+            sounds.levelup.currentTime = 0;
+            sounds.levelup.play();
+        }
+
+        document.getElementById("frenz-Level").textContent = player.level;
     }
+
+    // Pastikan currentNeeded selalu dihitung ulang sesuai level terbaru
+    currentNeeded = 2 * player.level + 1;
+    document.getElementById("frenz-Lines").textContent = `${linesInCurrentLevel}/${currentNeeded}`;
   } else {
     if (comboCount > 0) {
       comboCount = 0;
@@ -1203,29 +1335,23 @@ function arenaSweep() {
     updateFrenzyTimer(deltaTime);
 
   
-    // 🔵 Soft Drop (frame-based)
-    if (isSoftDropping) {
-      softDropCounter++;
-      if (softDropCounter >= sdfFrames) {
-        softDropCounter = 0;
-        playerDrop();
-    
-        // 🔊 Clone & play softdrop sound
-        if (sounds.softdrop) {
-          const softdropSFX = sounds.softdrop.cloneNode();
-          softdropSFX.volume = sounds.softdrop.volume;
-          softdropSFX.play();
-        }
-      }
+// 🔵 Auto fall with gravity or softdrop
+if (!lockPending) {
+  effectiveGravity = isSoftDropping ? gravity * sdfMultiplier : gravity;
+  gravityCounter += effectiveGravity;
+
+  while (gravityCounter >= 1) {
+    playerDrop();
+    gravityCounter--;
+
+    if (isSoftDropping && sounds.softdrop) {
+      const softdropSFX = sounds.softdrop.cloneNode();
+      softdropSFX.volume = sounds.softdrop.volume;
+      softdropSFX.play();
     }
-      
-    // 🔵 Auto fall (gravity)
-    dropCounter += deltaTime;
-    if (!lockPending && dropCounter > dropInterval) {
-      playerDrop();
-      dropCounter = 0;
-    }
-  
+  }
+}
+
     // 🔵 Frame-locked DAS & ARR
     if (moveHoldDir !== 0) {
       // Abaikan ARR kalau baru tap (supaya nggak double move)
@@ -1406,20 +1532,42 @@ document.addEventListener("keyup", (e) => {
 });
     
 
-  pauseButton.onclick = () => {
-    isPaused = !isPaused;
-    pauseButton.textContent = isPaused ? 'Resume' : 'Pause';
-    document.getElementById('pausedOverlay').innerText = isPaused ? 'The game is paused' : '';
-  
-    if (isPaused) {
-      const bgm = window.getCurrentBGM?.();
-      if (bgm) bgm.pause(); // ⏸️ pause lagu saat game pause
-    } else {
-      lastTime = performance.now();
-      const bgm = window.getCurrentBGM?.();
-      if (bgm) bgm.play();  // ▶️ lanjut lagu saat resume
-      update();
-    }}
+pauseButton.onclick = () => {
+  isPaused = !isPaused;
+  pauseButton.textContent = isPaused ? 'Resume' : 'Pause';
+  document.getElementById('pausedOverlay').innerText = isPaused ? 'The game is paused' : '';
+
+  if (isPaused) {
+    const bgm = window.getCurrentBGM?.();
+    if (bgm) bgm.pause();
+
+    // ✅ Tambahkan ini untuk menghentikan overlay
+    if (overlayTimeout) {
+      clearTimeout(overlayTimeout);
+      overlayTimeout = null;
+      const now = performance.now();
+      overlayRemaining -= (now - overlayPausedAt);
+    }
+
+  } else {
+    lastTime = performance.now();
+    const bgm = window.getCurrentBGM?.();
+    if (bgm) bgm.play();
+
+    // ✅ Tambahkan ini untuk melanjutkan overlay
+    if (overlayRemaining && overlayRemaining > 0) {
+      overlayPausedAt = performance.now();
+      overlayTimeout = setTimeout(() => {
+        const el = document.getElementById("frenzyOverlayMessage");
+        if (el) el.style.display = "none";
+        overlayTimeout = null;
+        overlayRemaining = null;
+      }, overlayRemaining);
+    }
+
+    update();
+  }
+};
 
   // ✅ JOIN BUTTON ACTION
   if (joinButton) {
@@ -1440,7 +1588,6 @@ document.addEventListener("keyup", (e) => {
   
 
   window.startCountdown = () => {
-    console.log("Countdown starting...");
   
     const selectedMode = localStorage.getItem('selectedGameMode');
     const selectedSoloMode = localStorage.getItem('selectedSoloMode');
@@ -1561,8 +1708,6 @@ function updateProgressBar() {
 
   const elapsed = Date.now() - escHoldStartTime;
   const progress = Math.min(elapsed / HOLD_DURATION, 1);
-    console.log(`progress: ${progress}, elapsed: ${elapsed}`); // 🔍 Tambahkan ini untuk debug
-
 
   if (progressQuitBar) {
     progressQuitBar.style.width = `${progress * 100}%`;

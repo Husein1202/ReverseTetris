@@ -7,7 +7,8 @@ let totalPiecesDropped = 0;
 let highestCombo = 0;
 let nextPiece = null;
 let hasCompleted40Lines = false;
-let startTime = 0;
+let startTime = Date.now();
+let gameStartTime = 0;
 let elapsedTime = 0;
 let lockPending = false;
 let lockTimeout = null;
@@ -16,7 +17,6 @@ const LOCK_DELAY_MS = 500; // Durasi delay sebelum piece dikunci (dalam milideti
 const MAX_LOCK_RESETS = 15;
 let landedY = null; // tambahkan global di awal
 let isSoftDropping = false;
-let softDropCounter = 0;
 let dasTimer = null;
 let arrTimer = null;
 let currentMoveDir = 0; // -1 kiri, 1 kanan
@@ -41,6 +41,8 @@ let isEscapeHolding = false;
 let escHoldStartTime = null;
 let hasTriggeredQuit = false;
 let escKeyIsDown = false;
+let gravity = 0.015; // default super lambat
+let gravityCounter = 0;
 
 
 
@@ -55,7 +57,6 @@ function updateProgressBar() {
 
   const elapsed = Date.now() - escHoldStartTime;
   const progress = Math.min(elapsed / HOLD_DURATION, 1);
-    console.log(`progress: ${progress}, elapsed: ${elapsed}`); // 🔍 Tambahkan ini untuk debug
 
 
   if (progressQuitBar) {
@@ -141,9 +142,6 @@ document.addEventListener("keyup", function(e) {
 
 const dasFrames = localStorage.getItem("das") !== null ? Math.round(parseFloat(localStorage.getItem("das"))) : 10;
 const arrFrames = localStorage.getItem("arr") !== null ? Math.round(parseFloat(localStorage.getItem("arr"))) : 2;
-const sdfSpeed = localStorage.getItem("sdf") !== null ? parseFloat(localStorage.getItem("sdf")) : 6;
-const sdfFrames = Math.round(60 / (sdfSpeed * 2)); // 6X = 5F
-const SOFT_DROP_INTERVAL = 40; // kamu bisa tweak ini sesuai feel
 
 const defaultControls = {
   left: "ArrowLeft|a",
@@ -383,8 +381,6 @@ if (mode === 'solo' && !solo) {
     flip180: false
   };
 
-  let dropCounter = 0;
-  let dropInterval = 1000;
   let lastTime = 0;
   let isGameOver = false;
   let isPaused = false;
@@ -406,12 +402,22 @@ let elapsedTime = 0; // mulai dari nol
 let lastFrameTime = null;
 const timerElement = document.getElementById("timer");
 
-function formatTime(ms) {
-  ms = Math.max(0, ms);
+function formatTimeShort(ms) {
+  ms = Math.max(0, Math.round(ms));
   const totalSeconds = Math.floor(ms / 1000);
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
+
   return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+}
+
+function formatTime(ms) {
+  ms = Math.max(0, Math.round(ms));
+  const totalSeconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  const milliseconds = ms % 1000;
+  return `${minutes}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(3, '0')}`;
 }
 
 function loadControlsFromSlot(slot) {
@@ -435,9 +441,11 @@ function updateTimer(deltaTime) {
 
   elapsedTime += deltaTime;
 
-  if (timerElement) {
-    timerElement.textContent = formatTime(elapsedTime);
-  }
+if (timerElement) {
+  const fullTime = formatTime(elapsedTime);
+  const [main, ms] = fullTime.split(".");
+  timerElement.innerHTML = `${main}.<span class="ms">${ms}</span>`;
+}
 }
 
   function createMatrix(w, h) {
@@ -1069,8 +1077,6 @@ function playerReset() {
   player.rotation = 0;
 
 if (collide(arena, player)) {
-  console.log("💀 Topout → tampilkan overlay");
-
   isGameOver = true;
   timerStarted = false;
 
@@ -1169,7 +1175,6 @@ function clearHoldCanvas() {
 
 
 document.getElementById("Retrybutt")?.addEventListener("click", () => {
-  console.log("🔁 Retry clicked");
   startRestartSequence();
 });
 
@@ -1248,8 +1253,10 @@ function arenaSweep() {
           sounds.gameover.play();
         }
         document.getElementById("completionOverlay").style.display = "flex";
-        elapsedTime = performance.now() - startTime;
-        document.getElementById("statTime").textContent = formatTime(elapsedTime);
+        elapsedTime = Date.now() - gameStartTime;
+        const fullTime = formatTime(elapsedTime);
+        const [main, ms] = fullTime.split('.');
+        document.getElementById("statTime").innerHTML = `${main}.<span class="ms">${ms}</span>`;
         document.getElementById("statScore").textContent = player.score;
         document.getElementById("statPieces").textContent = totalPiecesDropped;
         document.getElementById("statCombo").textContent = "x" + highestCombo;
@@ -1265,6 +1272,22 @@ function arenaSweep() {
 
         const lpm = (player.lines / (totalSeconds / 60)).toFixed(0);
         document.getElementById("statLPM").textContent = lpm;
+      const nickname = localStorage.getItem("nickname") || "Player";
+        const result = {
+          nickname,
+          mode: "40 LINES",
+          time: formatTime(elapsedTime),
+          time_ms: Math.round(elapsedTime),
+          pieces: totalPiecesDropped,
+          pps: totalPiecesDropped / (elapsedTime / 1000),
+          kpp: totalPiecesDropped > 0 ? (totalKeysPressed / totalPiecesDropped) : 0,
+          kps: (elapsedTime > 0) ? (totalKeysPressed / (elapsedTime / 1000)) : 0
+        };
+
+        if (typeof uploadScore === "function") {
+          uploadScore(result);
+        }
+
 
         const backBtn = document.getElementById("completionbackMode");
         if (backBtn) {
@@ -1306,29 +1329,24 @@ function arenaSweep() {
     const deltaTime = time - lastTime;
     lastTime = time;
   
-    // 🔵 Soft Drop (frame-based)
-    if (isSoftDropping) {
-      softDropCounter++;
-      if (softDropCounter >= sdfFrames) {
-        softDropCounter = 0;
-        playerDrop();
-    
-        // 🔊 Clone & play softdrop sound
-        if (sounds.softdrop) {
-          const softdropSFX = sounds.softdrop.cloneNode();
-          softdropSFX.volume = sounds.softdrop.volume;
-          softdropSFX.play();
-        }
-      }
-    }
-      
-    // 🔵 Auto fall (gravity)
-    dropCounter += deltaTime;
-    if (!lockPending && dropCounter > dropInterval) {
-      playerDrop();
-      dropCounter = 0;
-    }
-  
+// 🔵 Gravity G + Softdrop
+let sdfMultiplier = parseFloat(localStorage.getItem("sdf")) || 6;
+sdfMultiplier = Math.min(Math.max(sdfMultiplier, 1), 50);
+
+const effectiveGravity = isSoftDropping ? gravity * sdfMultiplier : gravity;
+gravityCounter += effectiveGravity;
+
+while (gravityCounter >= 1 && !lockPending) {
+  playerDrop();
+  gravityCounter--;
+
+  if (isSoftDropping && sounds.softdrop) {
+    const sfx = sounds.softdrop.cloneNode();
+    sfx.volume = sounds.softdrop.volume;
+    sfx.play();
+  }
+}
+
     // 🔵 Frame-locked DAS & ARR
     if (moveHoldDir !== 0) {
       // Abaikan ARR kalau baru tap (supaya nggak double move)
@@ -1564,8 +1582,6 @@ document.addEventListener("keyup", (e) => {
   }
 
   window.startCountdown = () => {
-    console.log("Countdown starting...");
-  
     const selectedMode = localStorage.getItem('selectedGameMode');
     const selectedSoloMode = localStorage.getItem('selectedSoloMode');
     if (selectedMode === 'solo' && !selectedSoloMode) {

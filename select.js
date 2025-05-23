@@ -78,7 +78,7 @@
           option.addEventListener('click', () => {
             localStorage.setItem('selectedSoloMode', soloMode);
             localStorage.setItem('selectedGameMode', 'solo');
-            if (soloMode === '40line') {
+            if (soloMode === '40L') {
               window.location.href = 'game.html';
             } else if (soloMode === 'Frenzy') {
               window.location.href = 'Frenzy.html';
