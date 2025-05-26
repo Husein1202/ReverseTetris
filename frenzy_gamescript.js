@@ -418,6 +418,10 @@ function getBlitzGravity(level) {
   let escAnimationFrame = null;
   let escKeyIsDown = false;
   let linesInCurrentLevel = 0;
+  let dasTimerMs = 0;
+  let arrTimerMs = 0;
+  let isInitialMove = false;
+
 
 
 
@@ -430,9 +434,12 @@ for (let i = 0; i < 100; i++) {
 }
 
 
-  const dasFrames = localStorage.getItem("das") !== null ? Math.round(parseFloat(localStorage.getItem("das"))) : 10;
-  const arrFrames = localStorage.getItem("arr") !== null ? Math.round(parseFloat(localStorage.getItem("arr"))) : 2;
-  const sdfSpeed = localStorage.getItem("sdf") !== null ? parseFloat(localStorage.getItem("sdf")) : 6;
+const dasFrames = parseFloat(localStorage.getItem("das") ?? "10");
+const arrFrames = parseFloat(localStorage.getItem("arr") ?? "2");
+const sdfSpeed = parseFloat(localStorage.getItem("sdf") ?? "6");
+
+const dasDelay = dasFrames * (1000 / 60);
+const arrDelay = arrFrames * (1000 / 60);
 
   const SOFT_DROP_INTERVAL = 40; // kamu bisa tweak ini sesuai feel
   
@@ -797,6 +804,16 @@ function playerMove(dir) {
     }
   }
 }
+
+function moveSnapToWall(dir) {
+  if (!player.matrix) return;
+
+  while (!collide(arena, player)) {
+    player.pos.x += dir;
+  }
+  player.pos.x -= dir;
+}
+
       
   function handleInitialMove(dir) {
     currentMoveDir = dir;
@@ -1076,6 +1093,14 @@ function playerRotate180() {
     return false;
   }
 
+  function offsetPiece(dir) {
+  return {
+    matrix: player.matrix,
+    pos: { x: player.pos.x + dir, y: player.pos.y }
+  };
+}
+
+
 function playerReset() {
   const pieces = 'TJLOSZI';
 
@@ -1353,42 +1378,24 @@ if (!lockPending) {
 }
 
     // 🔵 Frame-locked DAS & ARR
-    if (moveHoldDir !== 0) {
-      // Abaikan ARR kalau baru tap (supaya nggak double move)
-      const allowRepeat =
-        !((moveHoldDir === -1 && tapLeft) || (moveHoldDir === 1 && tapRight));
+if (moveHoldDir !== 0) {
+  dasTimerMs += deltaTime;
 
-      if (allowRepeat) {
-        if (initialMovePending) {
-          moveFrameCounter--;
-          if (moveFrameCounter <= 0) {
-            playerMove(moveHoldDir);
-            moveFrameCounter = arrFrames;
-            initialMovePending = false;
-          }
-        } else {
-          moveFrameCounter--;
-          if (moveFrameCounter <= 0) {
-            playerMove(moveHoldDir);
-            moveFrameCounter = arrFrames;
-          }
-        }
+  if (isInitialMove && dasTimerMs >= dasDelay) {
+    isInitialMove = false;
+    arrTimerMs = 0;
+  }
+
+  if (!isInitialMove) {
+    arrTimerMs += deltaTime;
+    if (arrTimerMs >= arrDelay) {
+      if (!collide(arena, offsetPiece(moveHoldDir))) {
+        playerMove(moveHoldDir);
       }
-      if (initialMovePending) {
-        moveFrameCounter--;
-        if (moveFrameCounter <= 0) {
-          playerMove(moveHoldDir);
-          moveFrameCounter = arrFrames;
-          initialMovePending = false;
-        }
-      } else {
-        moveFrameCounter--;
-        if (moveFrameCounter <= 0) {
-          playerMove(moveHoldDir);
-          moveFrameCounter = arrFrames;
-        }
-      }
+      arrTimerMs = 0;
     }
+  }
+}
       
     updateTimer(deltaTime);
     updateDebris(deltaTime);
@@ -1450,25 +1457,27 @@ document.addEventListener('keydown', (e) => {
 
   if (!isPaused || key === 'p') {
     switch (action) {
-      case 'left':
-        if (!e.repeat) {
-          playerMove(-1);
-          tapLeft = true;
-        }
-        moveHoldDir = -1;
-        moveFrameCounter = dasFrames;
-        initialMovePending = true;
-        break;
+    case 'left':
+      if (!e.repeat) {
+        playerMove(-1);      // ⬅️ sekali tap saja
+        tapLeft = true;
+      }
+      moveHoldDir = -1;
+      dasTimerMs = 0;
+      arrTimerMs = 0;
+      isInitialMove = true;  // ⬅️ untuk delay DAS
+      break;
 
-      case 'right':
-        if (!e.repeat) {
-          playerMove(1);
-          tapRight = true;
-        }
-        moveHoldDir = 1;
-        moveFrameCounter = dasFrames;
-        initialMovePending = true;
-        break;
+    case 'right':
+      if (!e.repeat) {
+        playerMove(1);
+        tapRight = true;
+      }
+      moveHoldDir = 1;
+      dasTimerMs = 0;
+      arrTimerMs = 0;
+      isInitialMove = true;
+      break;
 
       case 'softdrop':
         if (!isSoftDropping) isSoftDropping = true;
@@ -1512,21 +1521,25 @@ document.addEventListener("keyup", (e) => {
 
   const action = activeKeyBindings[key] || "";
 
-  const wrapper = document.querySelector(".tetris-wrapper");
-  if ((action === "left" && tapLeft) || (action === "right" && tapRight)) {
-    wrapper?.classList.remove("arena-left", "arena-right");
-    wrapper?.classList.add("arena-center");
-  }
+const wrapper = document.querySelector(".tetris-wrapper");
 
-  if (action === "left") {
+if (action === "left" || action === "right") {
+  currentDir = 0;
+
+  // Selalu reset animasi arena ke tengah saat tombol arah dilepas
+  wrapper?.classList.remove("arena-left", "arena-right");
+  wrapper?.classList.add("arena-center");
+}
+
+  if (action === "left" || action === "right") {
     moveHoldDir = 0;
-    initialMovePending = false;
+    isInitialMove = false;
+    dasTimerMs = 0;
+    arrTimerMs = 0;
     tapLeft = false;
-  } else if (action === "right") {
-    moveHoldDir = 0;
-    initialMovePending = false;
     tapRight = false;
-  } else if (action === "softdrop") {
+  }
+ else if (action === "softdrop") {
     isSoftDropping = false;
   }
 });

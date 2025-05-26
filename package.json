@@ -1,0 +1,24 @@
+{
+  "name": "reverse-tetris",
+  "version": "1.0.0",
+  "description": "**Reverse Tetris** is a browser-based puzzle game that flips the logic of classic Tetris. Instead of blocks falling from the top, they rise from the bottom. The goal remains the same: clear lines. This project was entirely developed by a solo developer — from design and code to core functionality — with sound effects sourced from [TETRIO+](https://you.have.fail/ed/at/tetrioplus/) and UI inspired by [TETR.IO](https://tetr.io).",
+  "main": "auth-script.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Husein1202/ReverseTetris.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Husein1202/ReverseTetris/issues"
+  },
+  "homepage": "https://github.com/Husein1202/ReverseTetris#readme",
+  "dependencies": {
+    "express": "^5.1.0",
+    "socket.io": "^4.8.1"
+  }
+}

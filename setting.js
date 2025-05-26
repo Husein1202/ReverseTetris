@@ -54,38 +54,35 @@ const convertSDF = (v) => {
 
 function updateHandling(id) {
   const el = document.getElementById(id);
-  const label = document.getElementById(id + '-value');
+  const label = document.getElementById(id + "-value");
 
   const stored = localStorage.getItem(id);
   let val = stored !== null ? parseFloat(stored) : defaultValue[id];
 
-  // ➜ BALIK NILAI untuk slider tampilan
-  if (id === "das") val = 21 - val; // 1 ↔ 20
-  if (id === "arr") val = 5.1 - val; // 0 ↔ 5
-
-  el.value = val;
+  // 💡 Balik slider agar UI kiri lambat, kanan cepat
+  if (id === "arr") el.value = (5.0 - val).toFixed(1);
+  else if (id === "das") el.value = (20.0 - val + 1.0).toFixed(1);
+  else el.value = val;
 
   const update = () => {
-    let rawVal = parseFloat(el.value);
+    const sliderVal = parseFloat(el.value);
+    let logicalVal = sliderVal;
 
-    // 🔁 BALIK LAGI saat nyimpan ke localStorage
-    if (id === "das") rawVal = 21 - rawVal;
-    if (id === "arr") rawVal = 5.1 - rawVal;
+    if (id === "arr") logicalVal = 5.0 - sliderVal;
+    else if (id === "das") logicalVal = 20.0 - sliderVal + 1.0;
 
-    localStorage.setItem(id, rawVal);
+    localStorage.setItem(id, logicalVal.toFixed(1));
 
-    if (id === "arr") {
-      label.textContent = `${Math.round(rawVal * 16.67)}MS (${Math.round(rawVal)}F)`;
-    } else if (id === "das") {
-      label.textContent = `${Math.round(rawVal * 16.67)}MS (${Math.round(rawVal)}F)`;
+    if (id === "arr" || id === "das") {
+      const ms = (logicalVal * (1000 / 60)).toFixed(0);
+      label.textContent = `${ms}ms (${logicalVal.toFixed(1)}F)`;
     } else if (id === "sdf") {
-      const info = convertSDF(rawVal);
-      label.textContent = `${info.x}X`;
+      label.textContent = logicalVal >= 41 ? "INSTANT" : `${logicalVal}X`;
     }
   };
 
   el.addEventListener("input", update);
-  update(); // initialize
+  update();
 }
 
   const customControls = {};
@@ -310,9 +307,12 @@ function playRandomBGM() {
     currentBGM = playRandomBGM();
   });
 
-  audio.play();
-  currentBGM = audio;
-  return audio;
+const resumeTime = parseFloat(localStorage.getItem("bgmResume") ?? 0);
+if (resumeTime > 0) audio.currentTime = resumeTime;
+
+audio.play();
+window.currentBGM = audio;
+return audio;
 }
 
 
@@ -446,18 +446,26 @@ document.addEventListener("DOMContentLoaded", () => {
 });
   
 
-document.getElementById("resetHandling").addEventListener("click", () => {
-  const defaultValues = {
-    das: 10,  // in frames
-    arr: 2,   // in frames
-    sdf: 6    // 6X
-  };
-
-  for (const key in defaultValues) {
-    localStorage.setItem(key, defaultValues[key]);
+document.addEventListener("DOMContentLoaded", () => {
+  const resetHandlingBtn = document.getElementById("resetHandling");
+  if (resetHandlingBtn) {
+    resetHandlingBtn.addEventListener("click", () => {
+      const defaultValues = {
+        das: 10,
+        arr: 2,
+        sdf: 6
+      };
+      for (const key in defaultValues) {
+        localStorage.setItem(key, defaultValues[key]);
+      }
+      ["das", "arr", "sdf"].forEach(updateHandling);
+    });
   }
 
-  // 🔁 Panggil ulang fungsi render supaya value, label, dan slider visual sinkron
-  ["das", "arr", "sdf"].forEach(updateHandling);
+  const resetCustomBtn = document.getElementById("resetCustom");
+  if (resetCustomBtn) {
+    resetCustomBtn.addEventListener("click", resetCustomControls);
+  }
+
+  // (tambahkan listener lainnya di sini juga jika perlu)
 });
-document.getElementById("resetCustom").addEventListener("click", resetCustomControls);

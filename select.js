@@ -1,6 +1,4 @@
-
-    
-    const nickname = localStorage.getItem('nickname') || 'GUEST';
+ const nickname = localStorage.getItem('nickname') || 'GUEST';
     document.querySelectorAll('#nicknameTag').forEach(el => el.textContent = nickname);
     
     // Daftar nickname acak (harus cocok dengan yang ada di index.html)
@@ -21,51 +19,42 @@
     
         
     
-        // Mode navigation
-        document.querySelectorAll('.mode-block').forEach(block => {
-      block.addEventListener('click', () => {
-        const selected = block.closest('.mode-block').dataset.mode; // Get the mode from the data-mode attribute
-    
-        if (selected === 'multiplayer') {
-          // Show the multiplayer popup
-          const popup = document.getElementById('popupLier');
-          if (popup) {
-            popup.classList.remove('hidden');  // Make the multiplayer popup visible
-          }
-        } else if (selected === 'solo') {
-          // Handle solo mode
-          localStorage.setItem('selectedGameMode', 'solo');
-          document.getElementById('modeScreen').style.display = 'none';
-          document.getElementById('soloScreen').style.display = 'block';
-        } else if (selected === 'settings') {
-          // Show settings screen
-          document.getElementById('modeScreen').style.display = 'none';
-          document.getElementById('SettingScreen').style.display = 'block';
-        } else if (selected === 'leaderboard') {
-          // Handle leaderboard mode
-          localStorage.setItem('selectedGameMode', 'leaderboard');
-          document.getElementById('modeScreen').style.display = 'none';
-          document.getElementById('LeaderboardScreen').style.display = 'block';
-        } else if (selected === 'about') {
-           // Handle about mode
-          localStorage.setItem('selectedGameMode', 'about');
-          document.getElementById('modeScreen').style.display = 'none';
-          document.getElementById('aboutScreen').style.display = 'block';
-        }
-    
-    
-        // Handle closing the multiplayer popup
-        const closeBtn = document.getElementById('closePopup');
-        if (closeBtn) {
-          closeBtn.addEventListener('click', () => {
-            const popup = document.getElementById('popupLier');
-            if (popup) {
-              popup.classList.add('hidden');  // Hide the multiplayer popup
-            }
-          });
-        }
-      });
-    });
+// Mode navigation
+document.querySelectorAll('.mode-block').forEach(block => {
+  block.addEventListener('click', () => {
+    const selected = block.closest('.mode-block').dataset.mode;
+
+    if (selected === 'multiplayer') {
+      // Tampilkan multiplayer screen
+      document.getElementById('modeScreen').style.display = 'none';
+      document.getElementById('multiScreen').style.display = 'block';
+
+    } else if (selected === 'multi') {
+      // Tampilkan CREATE ROOM screen dari tombol mode-mt
+      document.getElementById('multiScreen').style.display = 'none';
+      document.getElementById('createScreen').style.display = 'block';
+
+    } else if (selected === 'solo') {
+      localStorage.setItem('selectedGameMode', 'solo');
+      document.getElementById('modeScreen').style.display = 'none';
+      document.getElementById('soloScreen').style.display = 'block';
+
+    } else if (selected === 'settings') {
+      document.getElementById('modeScreen').style.display = 'none';
+      document.getElementById('SettingScreen').style.display = 'block';
+
+    } else if (selected === 'leaderboard') {
+      localStorage.setItem('selectedGameMode', 'leaderboard');
+      document.getElementById('modeScreen').style.display = 'none';
+      document.getElementById('LeaderboardScreen').style.display = 'block';
+
+    } else if (selected === 'about') {
+      localStorage.setItem('selectedGameMode', 'about');
+      document.getElementById('modeScreen').style.display = 'none';
+      document.getElementById('aboutScreen').style.display = 'block';
+    }
+  });
+});
     
         document.querySelector('.mode-lead').addEventListener('click', () => {
       window.location.href = 'ldboard.html';
@@ -110,7 +99,25 @@
             window.location.href = 'index.html';
           });
         }
-    
+        // Tombol kembali dari multiScreen ke modeScreen
+         const backFromMulti = document.getElementById('backFromMulti');
+        if (backFromMulti) {
+          backFromMulti.addEventListener('click', () => {
+            document.getElementById('multiScreen').style.display = 'none';
+            document.getElementById('modeScreen').style.display = 'block';
+          });
+        }
+
+        // Tombol keluar dari create room
+        const backFromCreate = document.getElementById('backFromCreate');
+      if (backFromCreate) {
+        backFromCreate.addEventListener('click', () => {
+          document.getElementById('createScreen').style.display = 'none';
+          document.getElementById('multiScreen').style.display = 'block';
+        });
+      }
+
+
         // Tombol kembali dari soloScreen ke modeScreen
         const backToMode = document.getElementById('backToMode');
         if (backToMode) {
@@ -169,3 +176,52 @@
       document.getElementById("close-settings")?.addEventListener("click", () => {
         document.getElementById("SettingScreen").style.display = "none";
       });
+
+async function fetchRecentScore(nickname) {
+  if (!window.supabase) return console.warn("❌ Supabase belum siap");
+
+  const scoreMap = {
+    "FRENZY": { field: "level", elementId: "recent-FRENZY", label: "Level" },
+  };
+
+  for (const mode in scoreMap) {
+    const { field, elementId, label } = scoreMap[mode];
+    const { data, error } = await window.supabase
+      .from("leaderboard_v2")
+      .select(field)
+      .eq("nickname", nickname)
+      .eq("mode", mode)
+      .order(field, { ascending: false })
+      .limit(1);
+
+    const val = data?.[0]?.[field];
+    const el = document.getElementById(elementId);
+    const labelEl = el.querySelector(".stat-label");
+const valueEl = el.querySelector(".stat-value");
+
+if (labelEl) labelEl.textContent = label;
+if (valueEl) valueEl.textContent = val != null ? `${val}` : "-";
+
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const nickname = localStorage.getItem("nickname") || "Player";
+  const coolNicknames = [
+    "TetehTetris", "BlokGagal", "SalahNgetik", "SiLemot", "CieNoob",
+    "FrostByte", "SiPanik", "GaPernahMenang", "BlokManaBlok", "CipungTetris",
+    "MainSendiri", "ComboNgaco", "PakTetris", "MalesMain", "GaAdaSkill",
+    "SkuyMain", "KambingNgeLag", "BudeTetris", "UjangGaming", "KlikAjaDulu"
+  ];
+  const isAnon = coolNicknames.includes(nickname);
+
+  // TUNGGU SUPABASE SIAP DENGAN POLLING
+  if (!isAnon) {
+    const interval = setInterval(() => {
+      if (window.supabase) {
+        clearInterval(interval);
+        fetchRecentScore(nickname);
+      }
+    }, 100); // Cek tiap 100ms
+  }
+});

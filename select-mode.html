@@ -38,20 +38,6 @@
       <p>Taken ? Good. Now wreck 'em</p>
     </div>
     </div>
-      <!-- Funny Popup -->
-    <div id="popupLier" class="popup hidden">
-    <div class="popup-content">
-      <p>Multiplayer? Bro, be serious. <br>Nobody wants to play with you 🤡</p>
-      <button id="closePopup">Fine</button>
-    </div>
-  </div>
-<div class="mode-block mode-lead" data-mode="leaderboard">
-  <div class="mode-code">LD</div>
-    <div class="mode-info">
-    <h3>Leaderboard</h3>
-    <p>Spoiler: You're still not #1. and Your ego told you to click this</p>
-    </div>
-</div>
     <div class="mode-block mode-sett" data-mode="settings">
     <div class="mode-code">ST</div>
     <div class="mode-info">
@@ -66,6 +52,13 @@
     <p>its all about the game and me, obviously</p>
     </div>
     </div>
+    <div class="mode-block mode-lead" data-mode="leaderboard">
+  <div class="mode-code">LD</div>
+    <div class="mode-info">
+    <h3>Leaderboard</h3>
+    <p>Spoiler: You're still not #1. and Your ego told you to click this</p>
+    </div>
+</div>
 
     </div>
     </div>
@@ -87,19 +80,28 @@
   <div class="solo-mode-list">
     <div class="solo-mode-option  mode-40L" data-solo="40L">
       <div class="solo-code">40L</div>
+      <div class="desc-wrapper">
       <div class="solo-desc">
       <h3>40 LINES</h3>
       <p>Finish 40 lines before your brain crashes</p>
       </div>
     </div>
+  </div>
 
     <div class="solo-mode-option mode-Frenzy" data-solo="Frenzy">
     <div class="solo-code">FRZ</div>
+    <div class="desc-wrapper">
     <div class="solo-desc">
       <h3>FRENZY</h3>
       <p>Survive 2 minutes of block chaos. Good luck</p>
     </div>
+    <div class="recent-stat" id="recent-FRENZY">
+      <div class="stat-label">Level</div>
+      <div class="stat-value">-</div>
     </div>
+  </div>
+</div>
+
     <div class="solo-mode-option mode-zen" data-solo="zen">
     <div class="solo-code">MED</div>
     <div class="solo-desc">
@@ -108,7 +110,121 @@
     </div>
     </div>
     </div>
+</div>
+
+<!-- MULTIPLAYER SCREEN-->
+   <div id="multiScreen" style="display: none;">
+    <div class="solo-header">
+      <div class="home-label">REVERSE TETRIS</div>
+      <div class="player-info">
+        <img src="anon-avatar.jpg" alt="Avatar" class="avatar" />
+        <div class="text-info">
+          <div id="nicknameTag"></div>
+          <div class="anon-label">ANONYMOUS</div>
+        </div>
+      </div>
     </div>
+
+<button id="backFromMulti">BACK</button>
+
+    <div class="mode-menu">
+      <div class="mode-block mode-mt" data-mode="multi">
+        <div class="mode-code">CRT</div>
+        <div class="mode-info">
+          <h3>CREATE ROOM</h3>
+          <p>CREATE PUBLIC OR PRIVATE ROOMS</p>
+        </div>
+      </div>
+      <div class="mode-block mode-lt" data-mode="listing">
+        <div class="mode-code">RLT</div>
+        <div class="mode-info">
+          <h3>ROOM LISTING</h3>
+          <p>JOIN EXISTING ROOM</p>
+        </div>
+      </div>
+    </div>
+   </div>
+
+<!-- CreateRoomSCREEN -->
+<div id="createScreen" style="display: none;">
+  <!-- Header Bar -->
+  <div class="solo-header">
+    <div class="home-label">CREATE ROOM</div>
+    <div class="player-info">
+      <img src="anon-avatar.jpg" alt="Avatar" class="avatar" />
+      <div class="text-info">
+        <div id="nicknameTag">GUEST</div>
+        <div class="anon-label" id="anonStatus">ANONYMOUS</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Lobby Grid -->
+  <div class="lobby-container">
+    
+    <!-- Panel Kiri: Players -->
+    <div class="lobby-players">
+      <h3>PLAYERS (1)</h3>
+      <div class="player-card">
+        <div class="nickname" id="hostNickname">GUEST-XXXX</div>
+        <div class="tags">
+          <span class="tag host">HOST</span>
+          <span class="tag anon" id="hostAnonTag">ANON</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel Tengah: Room Info -->
+    <div class="lobby-center">
+      <div class="form-group">
+        <label for="roomName">ROOM NAME</label>
+        <input type="text" id="roomName" />
+      </div>
+
+      <div class="form-group toggle-group">
+        <label>PUBLIC ROOM</label>
+        <label class="switch">
+          <input type="checkbox" id="togglePublic" checked />
+          <span class="slider round"></span>
+        </label>
+      </div>
+
+      <div class="form-group toggle-group">
+        <label>ALLOW ANONYMOUS USERS TO JOIN</label>
+        <label class="switch">
+          <input type="checkbox" id="toggleAnonJoin" checked />
+          <span class="slider round"></span>
+        </label>
+      </div>
+
+      <div class="form-group toggle-group">
+        <label>ALLOW USERS WHO ARE IN MATCHMAKING TO JOIN</label>
+        <label class="switch">
+          <input type="checkbox" id="toggleMatchJoin" checked />
+          <span class="slider round"></span>
+        </label>
+      </div>
+
+      <div class="form-group">
+        <div class="link-copy" id="roomIdCopy" title="Click to copy">🔗 CLICK TO COPY ROOM ID</div>
+      </div>
+
+      <button id="saveRoom" class="btn-save">SAVE</button>
+    </div>
+
+    <!-- Panel Kanan: Chat -->
+    <div class="lobby-chat">
+      <h3>CHAT</h3>
+      <div class="chat-box">
+        <p style="color:#aaa">Chat coming soon...</p>
+      </div>
+    </div>
+
+  </div>
+
+  <button id="backFromCreate" class="btn-exit">EXIT</button>
+</div>
+
 
   <!-- SETTING SCREEN-->
 <div id="SettingScreen" style="display: none;">
@@ -204,7 +320,10 @@
 <div class="setting-section">
   <div class="setting-header-wrapper">
     <div class="setting-header">HANDLING</div>
-    <button id="resetHandling" class="btn-reset">Reset Handling</button>
+  <div class="btn-hndl">
+    <button id="resetHandling" class="btn-reset">RESET</button>
+    <button id="testHandling" class="btn-test">TEST</button>
+  </div>
   </div>
     <div class="setting-slider">
     <div class="slider-labels">
@@ -225,7 +344,7 @@
       <span class="slider-title">ARR</span>
     </div>
     <div class="slider-bar">
-      <input type="range" id="arr" min="1" max="5" step="0.1">
+      <input type="range" id="arr" min="0" max="5" step="0.1">
       <span class="slider-value" id="arr-value"></span>
     </div>
     <div class="slider-labels">
@@ -348,6 +467,9 @@
   </div>
 
 <script src="setting.js"></script>
+<script type="module" src="supabaseClient.js"></script>
+<script src="supabase-leaderboard.js"></script>
 <script src="select.js"></script>
+
 </body>
 </html>
